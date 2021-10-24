@@ -5,28 +5,28 @@ from datetime import timedelta
 from django.test import TestCase
 from django.utils import timezone
 
-
 from .models import EnumerationContext, DateTimeAnnihilation, AnnihilationEnumContext
 from .generalization import generalize_datetime
 from .annihilation import datetimeannihilation_creator, annihilation_policy_creator
 from .enumeration import enumeration_key_gen
 
 
-# Create your tests here.
 class GeneralizationTestCase(TestCase):
     def test_generalize_datetime(self):
-        # Test if two different timestamps are generalized evenly
+        # Test if generalisation is commutative
         time_offset = timedelta(days=50)
-        reduction_value = 10800
-        generalized_now = generalize_datetime(timezone.now(),
-                                              reduction_value=reduction_value)
-        generalized_then = generalize_datetime(timezone.now()
-                                               + time_offset,
-                                               reduction_value=reduction_value)
-        generalized_double = generalize_datetime(generalize_datetime(timezone.now(),
-                                                                     60)
-                                                 + time_offset,
-                                                 reduction_value=reduction_value)
+        reduction_value = 60*60  # 1 hours
+        now = timezone.now()
+        generalized_now = generalize_datetime(
+            now, reduction_value=reduction_value)
+        generalized_then = generalize_datetime(
+            now + time_offset,
+            reduction_value=reduction_value,
+        )
+        generalized_double = generalize_datetime(
+            generalize_datetime(now, 60) + time_offset,
+            reduction_value=reduction_value,
+        )
         self.assertEqual(generalized_then, generalized_now + time_offset)
         self.assertEqual(generalized_then, generalized_double)
 
