@@ -15,10 +15,12 @@ activity in application software.
 
 1. Add `privacydates` to your INSTALLED_APPS setting like this::
 
-    INSTALLED_APPS = [
-        ...
-        'privacydates',
-    ]
+```python
+INSTALLED_APPS = [
+    ...
+    'privacydates',
+]
+```
 
 2. Run ``python manage.py migrate`` to create the privacydates models.
 
@@ -74,7 +76,7 @@ from privacydates.annihilation import annihilation_policy_creator
 
 and create a dictionary in this scheme:
 
-```json
+```python
 policy_dict = {
         "events": [
             {
@@ -108,7 +110,10 @@ from privacydates.annihilation import datetimeannihilation_creator
 
 Example of usage:
 ```python
-timestamp = datetimeannihilation_creator(timezone.now(),annihilation_policy_creator(policy_dict)),
+timestamp = datetimeannihilation_creator(
+    timezone.now(),
+    annihilation_policy_creator(policy_dict)
+)
 ```
 
 To print the timestamp in DateTimeAnnihilation:
