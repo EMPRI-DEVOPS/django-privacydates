@@ -1,0 +1,16 @@
+a {
+    color: black;
+    text-decoration: none;
+}
+
+table {
+    width: 100%;
+    text-align: left;
+}
+
+#actions {
+    margin: 1em 0;
+}
+#actions form {
+    display: inline-block;
+}
