@@ -5,7 +5,7 @@ from django.utils.timezone import make_aware
 register = template.Library()
 
 @register.filter
-def enum_to_date(value: int) -> datetime:
+def order_to_date(value: int) -> datetime:
     """Custom Django Template Filter transforming the EnumerationDateTime
      output (int) into a datetime object.
 
@@ -17,12 +17,12 @@ def enum_to_date(value: int) -> datetime:
         Returns
         -------
         datetime.datetime
-            The generalized Datetime
+            The roughend Datetime
         """
     if value is None:
         return value
     try:
         return make_aware(datetime.fromtimestamp(int(value)))
     except TypeError:
-        raise TypeError("Filter enum_to_date expects an integer as input, but got "
+        raise TypeError("Filter order_to_date expects an integer as input, but got "
                         + str(type(value)))
