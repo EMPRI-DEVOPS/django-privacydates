@@ -1,7 +1,7 @@
 from hashlib import sha256
 
 
-def enumeration_key_gen(keystring: str) -> str:
+def ordering_key_gen(keystring: str) -> str:
     """Create a reproducable key out of the input string
 
         Parameters

@@ -1,10 +1,10 @@
 from django.contrib import admin
-from .models import AnnihilationEvent, AnnihilationPolicy, DateTimeAnnihilation,\
-    EnumerationContext, AnnihilationEnumContext
+from .models import VanishingEvent, VanishingPolicy, VanishingDateTime,\
+    OrderingContext, VanishingOrderingContext
 
 # Register your models here.
-admin.site.register(DateTimeAnnihilation)
-admin.site.register(AnnihilationEvent)
-admin.site.register(AnnihilationPolicy)
-admin.site.register(EnumerationContext)
-admin.site.register(AnnihilationEnumContext)
+admin.site.register(VanishingDateTime)
+admin.site.register(VanishingEvent)
+admin.site.register(VanishingPolicy)
+admin.site.register(OrderingContext)
+admin.site.register(VanishingOrderingContext)

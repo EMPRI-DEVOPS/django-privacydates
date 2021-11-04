@@ -8,15 +8,15 @@ class PrivacydatesConfig(AppConfig):
 
     def ready(self):
         from .signals import delete_datetime_of_deleted_parent, event_creator_signal_receiver
-        from .mixins import AnnihilationMixIn
-        from .models import DateTimeAnnihilation
+        from .mixins import VanishingDateMixIn
+        from .models import VanishingDateTime
 
-        # Register post-save-signal for DateTimeAnnihilation
-        # to start creation of annihilation events
-        post_save.connect(event_creator_signal_receiver, sender=DateTimeAnnihilation)
+        # Register post-save-signal for VanishingDateTime
+        # to start creation of vanishing events
+        post_save.connect(event_creator_signal_receiver, sender=VanishingDateTime)
 
-        # Register post_delete-Signal for all Subclasses of AnnihilationMixin
-        for sub_class in AnnihilationMixIn.__subclasses__():
+        # Register post_delete-Signal for all Subclasses of VanishingDateMixin
+        for sub_class in VanishingDateMixIn.__subclasses__():
             post_delete.connect(delete_datetime_of_deleted_parent,
                                 sender=sub_class,
                                 dispatch_uid=str(sub_class))
