@@ -3,21 +3,21 @@ import uuid
 from django.db import models
 from django.utils import timezone
 
-from .generalization import generalize_datetime
+from .rough import roughen_datetime
 
 
-class AnnihilationPolicy(models.Model):
-    """Model used by DateTimeAnnihilation for storing the rules that
-     specify the AnnihilationEvents
+class VanishingPolicy(models.Model):
+    """Model used by VanishingDateTime for storing the rules that
+     specify the VanishingEvents
     """
     policy = models.JSONField()
-    enumeration_key = models.CharField(null=True, blank=True, max_length=64)
+    ordering_key = models.CharField(null=True, blank=True, max_length=64)
 
     class Meta:
-        unique_together = ('policy', 'enumeration_key',)
+        unique_together = ('policy', 'ordering_key',)
 
 
-class DateTimeAnnihilation(models.Model):
+class VanishingDateTime(models.Model):
     """Model that implements Time Unit Annihilation for
      Django DateTimeFields.
 
@@ -25,16 +25,16 @@ class DateTimeAnnihilation(models.Model):
     ----------
     dt : datetime.datetime
         initial and internal datetime.datetime,
-         which is being annihilated
+         of which information vanishes
         The datetime which should be reduced
 
-    annihilationpolicy: AnnihilationPolicy
-        Instance of AnnihilationPolicy defining the annihilation plan
-         and controlling enumeration functionality
+    vanishing_policy: VanishingPolicy
+        Instance of VanishingPolicy defining the vanishing plan
+         and controlling ordering functionality
     """
     dta_key = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     dt = models.DateTimeField()
-    annihilation_policy = models.ForeignKey(AnnihilationPolicy, on_delete=models.DO_NOTHING)
+    vanishing_policy = models.ForeignKey(VanishingPolicy, on_delete=models.DO_NOTHING)
 
     class Meta:
         ordering = ('dt', )
@@ -43,29 +43,29 @@ class DateTimeAnnihilation(models.Model):
         return str(self.dt)
 
 
-class AnnihilationEvent(models.Model):
-    """An AnnihilationEvent represent a single plannend Annihilation
-     of one DateTimeAnnihilation instance on a given point of time.
+class VanishingEvent(models.Model):
+    """An VanishingEvent represent a single plannend Vanishing
+     of one VanishingDateTime instance on a given point of time.
     Instances are regulary created by event_creator
 
     Parameters
     ----------
-    datetime_annihilation : DateTimeAnnihilation
-        The DateTimeAnnihilation instance the event is set for
+    vanishing_datetime : VanishingDateTime
+        The VanishingDateTime instance the event is set for
 
     event_date: datetime.datetime
-        The date and time the annihilation event is scheduled at.
+        The date and time the vanishing event is scheduled at.
 
     iteration: integer
-        the iteration of annihilation events for datetimeannihilation
+        the iteration of vanishing events for vanishing_datetime
     """
-    datetime_annihilation = models.ForeignKey(DateTimeAnnihilation, on_delete=models.CASCADE)
+    vanishing_datetime = models.ForeignKey(VanishingDateTime, on_delete=models.CASCADE)
     event_date = models.DateTimeField()
     iteration = models.IntegerField()
 
 
-class EnumerationContext(models.Model):
-    """Model managing Enumeration
+class OrderingContext(models.Model):
+    """Model managing Ordering
 
     Parameters
     ----------
@@ -77,20 +77,19 @@ class EnumerationContext(models.Model):
         Last count given by the instance
 
     last_date: datetime.datetime
-        The generalized Date the last count was given
+        The roughend Date the last count was given
 
     similarity_distance: integer
-        the length of the generalizition time slot in seconds
+        the length of the roughend time slot in seconds
     """
     context_key = models.CharField(primary_key=True, max_length=64, editable=False)
     last_count = models.IntegerField(default=0)
     similarity_distance = models.IntegerField(default=0)
     last_date = models.DateTimeField(null=True)
 
-
     def get_and_increment(self) -> int:
         """Get the next count (lowest unused) from an instance of
-        EnumerationContext. If similariry_distance is set to be > 0
+        OrderingContext. If similarity_distance is set to be > 0
 
         the same count is given for timestamps in the same generalized
         time slot. The size is defined by similarity_distance
@@ -101,22 +100,22 @@ class EnumerationContext(models.Model):
             lowest unused number of the context
         """
         if self.similarity_distance >= 1:
-            generalized_now = generalize_datetime(timezone.now(),
-                                                  self.similarity_distance)
+            rough_now = roughen_datetime(timezone.now(),
+                                               self.similarity_distance)
 
-            if self.last_date is not None and self.last_date == generalized_now:
+            if self.last_date is not None and self.last_date == rough_now:
                 return self.last_count
-            self.last_date = generalized_now
+            self.last_date = rough_now
 
         self.last_count += 1
         self.save()
         return self.last_count
 
 
-class AnnihilationEnumContext(models.Model):
-    """Model managing the count in Enumeration of Annihilation.
-    For Annihilation the counter resets,
-    when the AnnihilationDateTime is or will be different.
+class VanishingOrderingContext(models.Model):
+    """Model managing the count in Ordering of Vanishing.
+    For Vanishing the counter resets,
+    when the VanishingDateTime is or will be different.
 
     Parameters
     ----------
@@ -134,14 +133,14 @@ class AnnihilationEnumContext(models.Model):
     last_date = models.DateTimeField(null=True, blank=True)
 
 
-    def get_and_increment(self, policy: AnnihilationPolicy) -> int:
-        """Get the next count from an instance of EnumerationContext.
+    def get_and_increment(self, policy: VanishingPolicy) -> int:
+        """Get the next count from an instance of OrderingContext.
 
         Parameters
         ----------
-        policy : AnnihilationPolicy
-            AnnihilationPolicy used for the
-             of DateTimeAnnihilation
+        policy : VanishingPolicy
+            VanishingPolicy used for the
+             of VanishingDateTime
 
         Returns
         -------
@@ -149,10 +148,10 @@ class AnnihilationEnumContext(models.Model):
             lowest unused number of the context, since the last reset
         """
         max_reduction = max([e['reduction'] for e in policy.policy['events']])
-        generalized_now = generalize_datetime(timezone.now(), max_reduction)
-        if self.last_date is None or self.last_date != generalized_now:
+        roughed_now = roughen_datetime(timezone.now(), max_reduction)
+        if self.last_date is None or self.last_date != roughed_now:
             self.last_count = 0
-            self.last_date = generalized_now
+            self.last_date = roughed_now
             self.save()
             return self.last_count
         if self.last_count >= 999999:

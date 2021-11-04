@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='AnnihilationEnumContext',
+            name='VanishingOrderingContext',
             fields=[
                 ('context_key', models.CharField(editable=False, max_length=64, primary_key=True, serialize=False)),
                 ('last_count', models.IntegerField(default=0)),
@@ -22,18 +22,18 @@ class Migration(migrations.Migration):
             ],
         ),
         migrations.CreateModel(
-            name='AnnihilationPolicy',
+            name='VanishingPolicy',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('policy', models.JSONField()),
-                ('enumeration_key', models.CharField(blank=True, max_length=64, null=True)),
+                ('ordering_key', models.CharField(blank=True, max_length=64, null=True)),
             ],
             options={
-                'unique_together': {('policy', 'enumeration_key')},
+                'unique_together': {('policy', 'ordering_key')},
             },
         ),
         migrations.CreateModel(
-            name='EnumerationContext',
+            name='OrderingContext',
             fields=[
                 ('context_key', models.CharField(editable=False, max_length=64, primary_key=True, serialize=False)),
                 ('last_count', models.IntegerField(default=0)),
@@ -42,23 +42,23 @@ class Migration(migrations.Migration):
             ],
         ),
         migrations.CreateModel(
-            name='DateTimeAnnihilation',
+            name='VanishingDateTime',
             fields=[
                 ('dta_key', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
                 ('dt', models.DateTimeField()),
-                ('annihilation_policy', models.ForeignKey(on_delete=django.db.models.deletion.DO_NOTHING, to='privacydates.annihilationpolicy')),
+                ('vanishing_policy', models.ForeignKey(on_delete=django.db.models.deletion.DO_NOTHING, to='privacydates.vanishingpolicy')),
             ],
             options={
                 'ordering': ('dt',),
             },
         ),
         migrations.CreateModel(
-            name='AnnihilationEvent',
+            name='VanishingEvent',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('event_date', models.DateTimeField()),
                 ('iteration', models.IntegerField()),
-                ('datetime_annihilation', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='privacydates.datetimeannihilation')),
+                ('vanishing_datetime', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='privacydates.vanishingdatetime')),
             ],
         ),
     ]
