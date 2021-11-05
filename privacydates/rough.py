@@ -3,21 +3,21 @@ from datetime import datetime
 from django.utils.timezone import is_aware
 
 
-def generalize_datetime(dt: datetime, reduction_value: int) -> datetime:
-    """Generalizes Datetimes by a passed value
+def roughen_datetime(dt: datetime, reduction_value: int) -> datetime:
+    """Roughens Datetimes by a passed value
 
     Parameters
     ----------
     dt : datetime.datetime
         The datetime which should be reduced
     reduction_value : int
-        The value that indicates the generalization factor in seconds
+        The value that indicates the roughing factor in seconds
          (e.g. 60 would achieve an accuracy of one minute)
 
     Returns
     -------
     datetime.datetime
-        The generalized Datetime
+        The rough Datetime
 
 
     Raises

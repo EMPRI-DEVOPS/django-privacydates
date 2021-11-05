@@ -27,14 +27,15 @@ INSTALLED_APPS = [
 
 ## Usage
 
-### Generalization
+### Rough Date
 
-The field named `GeneralizationField` can be used as one to one replacement for a DateTimeField.
+The field named `RoughDateField` can be used as one to one replacement for a DateTimeField.
 It reduces the precision of the timestamp by a given value.
 
 Import it with:
+
 ```python
-from privacydates.fields import GeneralizationField
+from privacydates.fields import RoughDateField
 ```
 
 Replace the `DateTimeField` with it. All parameters can still be used.
@@ -42,36 +43,38 @@ Add the parameter `reduction_value` with the targeted precision in seconds as in
 
 Example:
 ```python
-timestamp = GeneralizationField(reduction_value=60)
+timestamp = RoughDateField(reduction_value=60)
 ```
-to generalize it to one minute.
+to reduce the accuracy to one minute.
 
 
 ---
-### Time Unit Annihilation
+### Vanishing Date
 
-The field named `AnnihilationField` only saves a ForeignKey to a `DateTimeAnnihilation`.
-The timestamp is placed in DateTimeAnnihilation.
+The field named `VanishingDateField` only saves a ForeignKey to a `VanishingDateTime`.
+The timestamp is placed in VanishingDateTime.
 
 Import it with:
+
 ```python
-from privacydates.fields import AnnihilationField
+from privacydates.fields import VanishingDateField
 ```
 
 
-Replace the DateTimeField with the AnnihilationField. Only Parameters applicable for RelationFields can be used.
+Replace the DateTimeField with the VanishingDateField. Only Parameters applicable for RelationFields can be used.
 Example of the definition:
 ```python
-timestamp = AnnihilationField()
+timestamp = VanishingDateField()
 ```
 
-The goal of annihilation is to provide a timestamp that loses accuracy over time.
+The goal of vanishing is to provide a timestamp that loses accuracy over time.
 For this, a set of rules must be created according to which these accuracy reductions are made.
 An `AnnihilationPolicy` is created with the set of rules.
 
 To create one import:
+
 ```python
-from privacydates.annihilation import annihilation_policy_creator
+from privacydates.vanish import vanishing_policy_creator
 ```
 
 and create a dictionary in this scheme:
@@ -90,33 +93,34 @@ policy_dict = {
         ],
     }
 ```
-- offset sets the time period after which an annihilation event should take place. (in minutes)
-- reduction is the target precision for the annihilation event. (in seconds)
+- offset sets the time period after which an vanishing event should take place. (in minutes)
+- reduction is the target precision for the vanishing event. (in seconds)
 
-Create a AnnihilationPolicy with:
+Create a VanishingPolicy with:
 ```python
-annihilation_policy_creator(policy_dict)
+vanishing_policy_creator(policy_dict)
 ```
 
 
 To initialize a timestamp,
-a DateTimeAnnihilation object must be created and this must be passed to the AnnihilationField.
-To create a DateTimeAnnihilation use the method `datetimeannihilation_creator`.
+a VanishingDateTime object must be created and this must be passed to the VanishingDateField.
+To create a VanishingDateTime use the method `vanishingdatetime_creator`.
 
 Import it with:
+
 ```python
-from privacydates.annihilation import datetimeannihilation_creator
+from privacydates.vanish import vanishingdatetime_creator
 ```
 
 Example of usage:
 ```python
-timestamp = datetimeannihilation_creator(
+timestamp = vanishingdatetime_creator(
     timezone.now(),
-    annihilation_policy_creator(policy_dict)
+    vanishing_policy_creator(policy_dict)
 )
 ```
 
-To print the timestamp in DateTimeAnnihilation:
+To print the timestamp in VanishingDateTime:
 ```python
 print(timestamp.dt)
 ```
@@ -124,32 +128,33 @@ print(timestamp.dt)
 
 
 ---
-### Enumeration
+### Ordering Date
 
-The field named `EnumerationField` is intended for timestamps that are used solely for sorting objects.
+The field named `OrderingDateField` is intended for timestamps that are used solely for sorting objects.
 It only saves an Integer for every timestamp in the database representing its position in a sequence.
 Sequences are separated from each other by the use of contexts. Each context has a unique key.
 In it the counter increments at each allocation, starting at 1.
-To create an enumeration key make use of the method `enumeration_key_gen`
+To create an ordering key make use of the method `ordering_key_gen`
 
 Import it with:
+
 ```python
-from privacydates.fields import EnumerationField
-from privacydates.enumeration import enumeration_key_gen
+from privacydates.fields import OrderingDateField
+from privacydates.order import ordering_key_gen
 ```
 
 
-Replace the DateTimeField with the EnumerationField. Only Parameters applicable for IntegerFields can be used.
+Replace the DateTimeField with the OrderingDateField. Only Parameters applicable for IntegerFields can be used.
 Example of the Definition:
 ```python
-timestamp = EnumerationField()
+timestamp = OrderingDateField()
 ```
 
 
 At initialization the context key is passed.
 Example of initialization:
 ```python
-timestamp = enumeration_key_gen("this-is-an-enumeration-key")
+timestamp = ordering_key_gen("this-is-an-ordering-key")
 ```
 
 Whenever you want to get the value just do it as if it were an IntergerField.
