@@ -48,7 +48,7 @@ def vanishing_updater():
                 # and a new iteration over events is necessary.
                 events_pending = True
                 # Save Ordering
-                enum_count = int(ae.vanishing_datetime.dt.strftime('%f'))
+                order_count = int(ae.vanishing_datetime.dt.strftime('%f'))
                 # Generalize Datetime
                 ae.vanishing_datetime.dt = roughen_datetime(
                     ae.vanishing_datetime.dt,
@@ -57,7 +57,7 @@ def vanishing_updater():
                 # Re add Order, if Ordering functionality was used.
                 if ae.vanishing_datetime.vanishing_policy.ordering_key is not None:
                     ae.vanishing_datetime.dt = (ae.vanishing_datetime.dt
-                                                + datetime.timedelta(microseconds=enum_count))
+                                                + datetime.timedelta(microseconds=order_count))
 
                 ae.vanishing_datetime.save()
                 # Create next event, if applicable
