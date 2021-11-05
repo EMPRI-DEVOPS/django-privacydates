@@ -3,9 +3,9 @@ from django.views.generic import (ListView)
 
 from django.utils import timezone
 
-from privacydates.annihilation import annihilation_policy_creator, annihilation_updater,\
-    datetimeannihilation_creator
-from privacydates.enumeration import enumeration_key_gen
+from privacydates.vanish import vanishing_policy_creator, vanishing_updater,\
+    vanishingdatetime_creator
+from privacydates.order import ordering_key_gen
 from .models import Event
 
 # Create your views here.
@@ -42,20 +42,20 @@ def event_create_view(request):
     }
 
     Event.objects.create(base_date=timezone.now(),
-                         generalized_date=timezone.now(),
-                         annihilation_date=datetimeannihilation_creator(timezone.now(),
-                                                                        annihilation_policy_creator(policy_dict)),
-                         annihilation_enumeration_date=datetimeannihilation_creator(timezone.now(),
-                                                                                    annihilation_policy_creator(
+                         rough_date=timezone.now(),
+                         vanishing_date=vanishingdatetime_creator(timezone.now(),
+                                                                     vanishing_policy_creator(policy_dict)),
+                         vanishing_ordering_date=vanishingdatetime_creator(timezone.now(),
+                                                                                 vanishing_policy_creator(
                                                                                         policy_dict,
-                                                                                        enumeration_key=
-                                                                                        enumeration_key_gen(
+                                                                                        ordering_key=
+                                                                                        ordering_key_gen(
                                                                                             str(request.user) + "dtae"
                                                                                         )
                                                                                     )
                                                                                     ),
-                         enumeration_date=enumeration_key_gen(str(request.user) + "en"),
-                         enumeration_similarity_date = enumeration_key_gen(str(request.user) + "en2"))
+                         ordering_date=ordering_key_gen(str(request.user) + "en"),
+                         ordering_similarity_date = ordering_key_gen(str(request.user) + "en2"))
     return redirect('/?order=base_date')
 
 
@@ -65,6 +65,6 @@ def event_delete_all_redirect(request):
     return redirect('/?order=base_date')
 
 
-def annihilation_update(request):
-    annihilation_updater()
+def vanishing_update(request):
+    vanishing_updater()
     return redirect('/?order=base_date')

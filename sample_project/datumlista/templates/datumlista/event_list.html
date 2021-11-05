@@ -1,6 +1,6 @@
 {% extends "datumlista/base.html" %}
 {% block content %}
-{% load enum_utils %}
+{% load privacydates_utils %}
     <h1>privacydates Showcase</h1>
 
     <div id="actions">
@@ -10,28 +10,28 @@
         <form action="delete-all/" method='GET'>
             <input type="submit" value="Delete all" />
         </form>
-        <form action="an-update/" method='GET'>
-            <input type="submit" value="Annihilation update" />
+        <form action="v-update/" method='GET'>
+            <input type="submit" value="Vanishing update" />
         </form>
     </div>
     <table>
     <tr>
         <th><a href="?order=base_date">Base</a></th>
-        <th><a href="?order=generalized_date">Generalized</a></th>
-        <th><a href="?order=annihilation_date">Annihilation</a></th>
-        <th><a href="?order=annihilation_enumeration_date">AnnihilationEnumeration</a></th>
-        <th><a href="?order=enumeration_date">Enumeration</a></th>
-        <th><a href="?order=enumeration_similarity_date">Enumeration Similarity</a></th>
+        <th><a href="?order=rough_date">Rough</a></th>
+        <th><a href="?order=vanishing_date">Vanishing</a></th>
+        <th><a href="?order=vanishing_ordering_date">VanishingOrdering</a></th>
+        <th><a href="?order=ordering_date">Ordering</a></th>
+        <th><a href="?order=ordering_similarity_date">Ordering Similarity</a></th>
     </tr>
 
     {% for event in object_list %}
         <tr>
             <td>{{ event.base_date|date:"Y-m-d H:i:s:u" }}</td>
-            <td>{{ event.generalized_date|date:"H:i:s:u" }}</td>
-            <td>{{ event.annihilation_date.dt|date:"H:i:s:u" }}</td>
-            <td>{{ event.annihilation_enumeration_date.dt|date:"H:i:s:u" }}</td>
-            <td>{{ event.enumeration_date }} - {{ event.enumeration_date|enum_to_date|date:"H:i:s:u" }}</td>
-            <td>{{ event.enumeration_similarity_date }}</td>
+            <td>{{ event.rough_date|date:"H:i:s:u" }}</td>
+            <td>{{ event.vanishing_date.dt|date:"H:i:s:u" }}</td>
+            <td>{{ event.vanishing_ordering_date.dt|date:"H:i:s:u" }}</td>
+            <td>{{ event.ordering_date }} - {{ event.ordering_date|order_to_date|date:"H:i:s:u" }}</td>
+            <td>{{ event.ordering_similarity_date }}</td>
         </tr>
     {% endfor %}
     </table>
