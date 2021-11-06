@@ -5,7 +5,7 @@ from privacydates import fields
 from privacydates.mixins import VanishingDateMixIn
 
 
-# Basic Event with multiple timestamps representing the same time with different model fields.
+# Basic Event with multiple timestamps representing the same time with the different types of privacydates date fields.
 class Event(models.Model, VanishingDateMixIn):
     base_date = models.DateTimeField(null=True, blank=True, default=timezone.now)
     rough_date = fields.RoughDateField(default=timezone.now, null=True, blank=True, reduction_value=30)
