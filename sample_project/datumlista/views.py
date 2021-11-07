@@ -9,8 +9,9 @@ from privacydates.order import ordering_key_gen
 from .models import Event
 
 
-# ListView of Event containing the different timestamps of privacydates
 class EventListView(ListView):
+    """ListView of Event containing the different timestamps of
+    privacydates."""
     model = Event
     template_name = 'datumlista/event_list.html'
 
@@ -24,8 +25,8 @@ class EventListView(ListView):
         return Event.objects.order_by('-base_date')
 
 
-# Creates a new Event.
 def event_create_view(request):
+    """Creates a new Event"""
     policy_dict = {
         "events": [
             {
@@ -39,31 +40,33 @@ def event_create_view(request):
         ],
     }
 
-    Event.objects.create(base_date=timezone.now(),
-                         rough_date=timezone.now(),
-                         vanishing_date=vanishingdatetime_creator(timezone.now(),
-                                                                  vanishing_policy_creator(policy_dict)),
-                         vanishing_ordering_date=vanishingdatetime_creator(timezone.now(),
-                                                                           vanishing_policy_creator(
-                                                                                policy_dict,
-                                                                                ordering_key=
-                                                                                ordering_key_gen(
-                                                                                    str(request.user) + "dtae"
-                                                                                    )
-                                                                                )
-                                                                           ),
-                         ordering_date=ordering_key_gen(str(request.user) + "en"),
-                         ordering_similarity_date=ordering_key_gen(str(request.user) + "en2"))
+    Event.objects.create(
+        base_date=timezone.now(),
+        rough_date=timezone.now(),
+        vanishing_date=vanishingdatetime_creator(
+            timezone.now(),
+            vanishing_policy_creator(policy_dict),
+        ),
+        vanishing_ordering_date=vanishingdatetime_creator(
+            timezone.now(),
+            vanishing_policy_creator(
+                policy_dict,
+                ordering_key=ordering_key_gen(str(request.user) + "dtae"),
+            ),
+        ),
+        ordering_date=ordering_key_gen(str(request.user) + "en"),
+        ordering_similarity_date=ordering_key_gen(str(request.user) + "en2"),
+    )
     return redirect('/?order=base_date')
 
 
-# Delete all stored Events
 def event_delete_all_redirect(request):
+    """Delete all stored Events"""
     Event.objects.all().delete()
     return redirect('/?order=base_date')
 
 
-# Runs vanishing_update() to trigger vanishing of VanishingDateTimes
 def vanishing_update(request):
+    """Runs vanishing_update() to trigger vanishing of VanishingDateTimes"""
     vanishing_updater()
     return redirect('/?order=base_date')
