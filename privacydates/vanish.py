@@ -41,8 +41,9 @@ def vanishing_updater():
         # Get all vanishing events
         ae_list = VanishingEvent.objects.all()
         events_pending = False
+        now = timezone.now()
         for ae in ae_list:
-            if ae is not None and ae.event_date < timezone.now():
+            if ae is not None and ae.event_date <= now:
                 # Set events_pending to true,
                 # as a newly created vanishing event may already be in the past,
                 # and a new iteration over events is necessary.
