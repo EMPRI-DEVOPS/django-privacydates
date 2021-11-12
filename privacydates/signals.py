@@ -53,7 +53,6 @@ def delete_datetime_of_deleted_parent(sender, instance, **kwargs):
         instance : Object
             The Instance containing OneToOne Relations to DateTimeAnnihilations
         """
-    print("Signal received!")
     for i in instance._meta.get_fields():
         if type(getattr(instance, i.name)) is VanishingDateTime:
             getattr(instance, i.name).delete()
