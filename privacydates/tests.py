@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from .models import OrderingContext, VanishingDateTime, VanishingOrderingContext
 from .rough import roughen_datetime
-from .vanish import vanishingdatetime_creator, vanishing_policy_creator
+from .vanish import vanishingdatetime_creator, make_policy
 from .order import ordering_key_gen
 
 
@@ -46,10 +46,10 @@ class RoughDateTestCase(TestCase):
         for x in range(0, 10):
             reduction_value = randint(1, 9999999)
             rough_now_r = roughen_datetime(timezone.now(),
-                                                    reduction_value=reduction_value)
+                                           reduction_value=reduction_value)
             rough_then_r = roughen_datetime(timezone.now()
-                                                     + time_offset,
-                                                     reduction_value=reduction_value)
+                                            + time_offset,
+                                            reduction_value=reduction_value)
             r_diff = abs(rough_then_r - (rough_now_r + time_offset))
             self.assertLessEqual(r_diff, timedelta(seconds=reduction_value))
 
@@ -104,7 +104,7 @@ class VanishingDateTimeTestCase(TestCase):
                     ],
                 }
         now = timezone.now()
-        v_policy = vanishing_policy_creator(policy=policy1)
+        v_policy = make_policy(policy=policy1)
         dta1 = VanishingDateTime.objects.create(dt=now, vanishing_policy=v_policy)
         dta2 = vanishingdatetime_creator(dt=now, vanishing_policy=v_policy)
         self.assertEqual(dta1.dt, dta2.dt)
@@ -119,7 +119,7 @@ class VanishingDateTimeTestCase(TestCase):
             ],
         }
 
-        v_policy2 = vanishing_policy_creator(policy=policy2)
+        v_policy2 = make_policy(policy=policy2)
         dta3 = VanishingDateTime.objects.create(dt=now, vanishing_policy=v_policy2)
         dta4 = vanishingdatetime_creator(dt=now, vanishing_policy=v_policy2)
         self.assertEqual(dta3.dt, dta4.dt)
@@ -134,7 +134,7 @@ class VanishingDateTimeTestCase(TestCase):
             ],
         }
 
-        v_policy3 = vanishing_policy_creator(policy=policy3)
+        v_policy3 = make_policy(policy=policy3)
         dta5 = VanishingDateTime.objects.create(dt=now, vanishing_policy=v_policy3)
         dta6 = vanishingdatetime_creator(dt=now, vanishing_policy=v_policy3)
         self.assertEqual(dta5.dt, dta6.dt)
@@ -161,14 +161,12 @@ class VanishingDateTimeTestCase(TestCase):
             ],
         }
 
-        v_policy4 = vanishing_policy_creator(policy=policy4)
+        v_policy4 = make_policy(policy=policy4)
         dta7 = VanishingDateTime.objects.create(dt=now, vanishing_policy=v_policy4)
         dta8 = vanishingdatetime_creator(dt=now, vanishing_policy=v_policy4)
         self.assertEqual(dta7.dt, dta8.dt)
         self.assertEqual(dta7.vanishing_policy, dta8.vanishing_policy)
         self.assertEqual(dta7.vanishing_policy.policy, policy4)
-
-
 
     def test_faulty_vanishing_policies(self):
         now = timezone.now()
@@ -176,13 +174,13 @@ class VanishingDateTimeTestCase(TestCase):
         with self.assertRaises(ValueError):
             VanishingDateTime.objects.create(dt=now,
                                              vanishing_policy=
-                                                vanishing_policy_creator(policy={}))
+                                             make_policy(policy={}))
 
         # Test empty list in dict for VanishingPolicy
         with self.assertRaises(ValueError):
             VanishingDateTime.objects.create(dt=now,
                                              vanishing_policy=
-                                                vanishing_policy_creator(
+                                             make_policy(
                                                     policy={"events": []})
                                              )
 
@@ -200,7 +198,7 @@ class VanishingDateTimeTestCase(TestCase):
         with self.assertRaises(ValueError):
             VanishingDateTime.objects.create(dt=now,
                                              vanishing_policy=
-                                                vanishing_policy_creator(policy=faulty_policy))
+                                             make_policy(policy=faulty_policy))
 
 
 class VanishingOrderingContextTestCase(TestCase):
@@ -220,8 +218,8 @@ class VanishingOrderingContextTestCase(TestCase):
                     },
                     ],
                 }
-        an_policy = vanishing_policy_creator(policy=policy1,
-                                             ordering_key="testcase1-an-enum")
+        an_policy = make_policy(policy=policy1,
+                                ordering_key="testcase1-an-enum")
 
         for x in range(0, 15):
             instance = VanishingOrderingContext.objects.get(context_key="testcase1-an-enum")
@@ -236,8 +234,8 @@ class VanishingOrderingContextTestCase(TestCase):
                     },
                     ],
                 }
-        an_policy = vanishing_policy_creator(policy=policy2,
-                                             ordering_key="testcase2-an-enum")
+        an_policy = make_policy(policy=policy2,
+                                ordering_key="testcase2-an-enum")
         first = instance.get_and_increment(policy=an_policy)
         second = instance.get_and_increment(policy=an_policy)
         third = instance.get_and_increment(policy=an_policy)

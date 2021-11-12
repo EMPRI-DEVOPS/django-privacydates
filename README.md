@@ -74,7 +74,7 @@ An `AnnihilationPolicy` is created with the set of rules.
 To create one import:
 
 ```python
-from privacydates.vanish import vanishing_policy_creator
+from privacydates.vanish import make_policy
 ```
 
 and create a dictionary in this scheme:
@@ -98,7 +98,7 @@ policy_dict = {
 
 Create a VanishingPolicy with:
 ```python
-vanishing_policy_creator(policy_dict)
+make_policy(policy_dict)
 ```
 
 
