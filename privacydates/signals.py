@@ -44,14 +44,14 @@ def event_creator_signal_receiver(sender, instance, created, **kwargs):
 
 
 def delete_datetime_of_deleted_parent(sender, instance, **kwargs):
-    """Deletes all VanishingDateTime in OneToOne Relation with the given instance.
+    """Deletes all VanishingDateTime which are linked by a ForeignKey with the given instance.
 
         Parameters
         ----------
         sender : Class
-            The Class containing OneToOne Relations to DateTimeAnnihilations
+            The Class containing ForeignKey Relations to DateTimeAnnihilations
         instance : Object
-            The Instance containing OneToOne Relations to DateTimeAnnihilations
+            The Instance containing ForeignKey Relations to DateTimeAnnihilations
         """
     for i in instance._meta.get_fields():
         if type(getattr(instance, i.name)) is VanishingDateTime:
