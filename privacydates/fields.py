@@ -64,7 +64,7 @@ class OrderingDateField(models.IntegerField):
         return count
 
 
-class VanishingDateField(models.OneToOneField):
+class VanishingDateField(models.ForeignKey):
     """Django Field so save an one-to-to relation to an instance of
      VanishingDateTime
     """
