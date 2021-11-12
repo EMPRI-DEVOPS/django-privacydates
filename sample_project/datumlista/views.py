@@ -2,7 +2,7 @@ from django.shortcuts import redirect
 from django.views.generic import (ListView)
 from django.utils import timezone
 
-from privacydates.vanish import vanishing_policy_creator, vanishing_updater,\
+from privacydates.vanish import make_policy, vanishing_updater,\
     vanishingdatetime_creator
 from privacydates.order import ordering_key_gen
 
@@ -45,11 +45,11 @@ def event_create_view(request):
         rough_date=timezone.now(),
         vanishing_date=vanishingdatetime_creator(
             timezone.now(),
-            vanishing_policy_creator(policy_dict),
+            make_policy(policy_dict),
         ),
         vanishing_ordering_date=vanishingdatetime_creator(
             timezone.now(),
-            vanishing_policy_creator(
+            make_policy(
                 policy_dict,
                 ordering_key=ordering_key_gen(str(request.user) + "dtae"),
             ),

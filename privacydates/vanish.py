@@ -96,7 +96,7 @@ def vanishingdatetime_creator(
     return dta
 
 
-def vanishing_policy_creator(policy, ordering_key=None):
+def make_policy(policy, ordering_key=None):
     """Creates or Gets (when already existing) an VanishingPolicy
      with the given dict and return the created object
 
