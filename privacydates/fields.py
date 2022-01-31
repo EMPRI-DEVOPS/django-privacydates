@@ -28,7 +28,9 @@ class RoughDateField(models.DateTimeField):
         dt = super().pre_save(model_instance, add)
         if dt is None:
             return dt
-        return roughen_datetime(dt, self.reduction_value)
+        rough_dt = roughen_datetime(dt, self.reduction_value)
+        setattr(model_instance, self.attname, rough_dt)
+        return rough_dt
 
 
 class OrderingDateField(models.IntegerField):
