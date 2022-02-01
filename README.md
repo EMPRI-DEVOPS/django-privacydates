@@ -1,7 +1,7 @@
 django-privacydates
 ===================
 
-**Disclaimer:** This project is an academic demonstrator and be used with caution. We are happy to receive feedback but cannot guarantee any regular maintenance.
+**Disclaimer:** This project is an academic demonstrator and should be used with caution. We are happy to receive feedback but cannot guarantee any regular maintenance.
 
 Privacydates is a Django app that provides alternatives to the common timestamp model fields
 `DateField` and `DateTimeField`.
