@@ -1,10 +1,17 @@
-import math
-from datetime import datetime
-from django.utils.timezone import is_aware
+"""
+Datetime precision reduction utilites
+"""
+from datetime import datetime, timezone
 
 
 def roughen_datetime(dt: datetime, reduction_value: int) -> datetime:
-    """Roughens Datetimes by a passed value
+    """Reduces the datetimes precision to multiples of the given value in
+    seconds.
+
+    Note that the reduction is done on the local not UTC timestamp.
+    As a result, the UTC value of a CET timestamp after reduction to
+    day-precision will still show an hour-value of 1 due to the timezone
+    offset.
 
     Parameters
     ----------
@@ -17,7 +24,7 @@ def roughen_datetime(dt: datetime, reduction_value: int) -> datetime:
     Returns
     -------
     datetime.datetime
-        The rough Datetime
+        The rough datetime
 
 
     Raises
@@ -28,7 +35,6 @@ def roughen_datetime(dt: datetime, reduction_value: int) -> datetime:
         If reduction_value is not of type int
     ValueError
         If reduction_value is not smaller than 1.
-
     """
     if not isinstance(dt, datetime):
         raise TypeError('invalid type of dt')
@@ -37,14 +43,11 @@ def roughen_datetime(dt: datetime, reduction_value: int) -> datetime:
     if reduction_value < 1:
         raise ValueError('invalid value passed for reductionvalue')
 
-    # Generalization formular. Datetime is converted to timestamp (unixtime)
-    reduced_unixtime = (math.floor(int(dt.timestamp())
-                                   / reduction_value)
-                        * reduction_value)
+    # pretend timestamp is UTC avoid offset ajustment when calculating
+    # POSIX timestamp. Otherwise we would reduce the UTC value.
+    reduced_unixtime = ((int(dt.replace(tzinfo=timezone.utc).timestamp())
+                         // reduction_value) * reduction_value)
 
-    # If the input datetime was timezone aware, this will be reflected by the new datetime
-    if is_aware(dt):
-        reduced_dt = datetime.fromtimestamp(reduced_unixtime, tz=dt.tzinfo)
-    else:
-        reduced_dt = datetime.fromtimestamp(reduced_unixtime)
-    return reduced_dt
+    # carry over tzinfo if existant
+    return datetime.utcfromtimestamp(
+        reduced_unixtime).replace(tzinfo=dt.tzinfo)
