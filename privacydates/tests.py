@@ -6,7 +6,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 from .models import OrderingContext, VanishingDateTime, VanishingOrderingContext
-from .rough import roughen_datetime
+from .precision import reduce_precision
 from .vanish import vanishingdatetime_creator, make_policy
 from .order import ordering_key_gen
 
@@ -17,39 +17,37 @@ class RoughDateTestCase(TestCase):
         time_offset = timedelta(days=50)
         reduction_value = 60*60  # 1 hours
         now = timezone.now()
-        rough_now = roughen_datetime(
-            now, reduction_value=reduction_value)
-        rough_then = roughen_datetime(
+        rough_now = reduce_precision(
+            now, reduction_value)
+        rough_then = reduce_precision(
             now + time_offset,
-            reduction_value=reduction_value,
+            reduction_value,
         )
-        rough_double = roughen_datetime(
-            roughen_datetime(now, 60) + time_offset,
-            reduction_value=reduction_value,
+        rough_double = reduce_precision(
+            reduce_precision(now, 60) + time_offset,
+            reduction_value,
         )
         self.assertEqual(rough_then, rough_now + time_offset)
         self.assertEqual(rough_then, rough_double)
 
         # Type tests
         with self.assertRaises(ValueError):
-            roughen_datetime(timezone.now(), -1)
+            reduce_precision(timezone.now(), -1)
         with self.assertRaises(ValueError):
-            roughen_datetime(timezone.now(), 0)
+            reduce_precision(timezone.now(), 0)
         with self.assertRaises(TypeError):
-            roughen_datetime(0, 0)
+            reduce_precision(0, 0)
         with self.assertRaises(TypeError):
-            roughen_datetime(0, timezone.now())
+            reduce_precision(0, timezone.now())
 
         # Test if two different timestamps are roughend
         # evenly with random reduction_value
         # It cant be expected to be similar.
         for x in range(0, 10):
             reduction_value = randint(1, 9999999)
-            rough_now_r = roughen_datetime(timezone.now(),
-                                           reduction_value=reduction_value)
-            rough_then_r = roughen_datetime(timezone.now()
-                                            + time_offset,
-                                            reduction_value=reduction_value)
+            rough_now_r = reduce_precision(timezone.now(), reduction_value)
+            rough_then_r = reduce_precision(timezone.now() + time_offset,
+                                            reduction_value)
             r_diff = abs(rough_then_r - (rough_now_r + time_offset))
             self.assertLessEqual(r_diff, timedelta(seconds=reduction_value))
 

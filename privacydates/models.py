@@ -3,7 +3,7 @@ import uuid
 from django.db import models
 from django.utils import timezone
 
-from .rough import roughen_datetime
+from .precision import Precision, reduce_precision
 
 
 class VanishingPolicy(models.Model):
@@ -100,8 +100,8 @@ class OrderingContext(models.Model):
             lowest unused number of the context
         """
         if self.similarity_distance >= 1:
-            rough_now = roughen_datetime(timezone.now(),
-                                               self.similarity_distance)
+            rough_now = reduce_precision(timezone.now(),
+                                         self.similarity_distance)
 
             if self.last_date is not None and self.last_date == rough_now:
                 return self.last_count
@@ -148,7 +148,7 @@ class VanishingOrderingContext(models.Model):
             lowest unused number of the context, since the last reset
         """
         max_reduction = max([e['reduction'] for e in policy.policy['events']])
-        roughed_now = roughen_datetime(timezone.now(), max_reduction)
+        roughed_now = reduce_precision(timezone.now(), max_reduction)
         if self.last_count >= 999999:
             # TODO: Warn about reaching the limit
             return self.last_count

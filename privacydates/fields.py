@@ -6,8 +6,8 @@ in a more privacy preserving format
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from .rough import roughen_datetime
 from .models import OrderingContext, VanishingDateTime
+from .precision import reduce_precision
 
 
 class RoughDateField(models.DateTimeField):
@@ -28,7 +28,7 @@ class RoughDateField(models.DateTimeField):
         dt = super().pre_save(model_instance, add)
         if dt is None:
             return dt
-        rough_dt = roughen_datetime(dt, self.reduction_value)
+        rough_dt = reduce_precision(dt, self.reduction_value)
         setattr(model_instance, self.attname, rough_dt)
         return rough_dt
 

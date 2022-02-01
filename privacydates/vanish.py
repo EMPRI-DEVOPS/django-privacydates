@@ -3,7 +3,7 @@ import datetime
 from django.utils import timezone
 
 from .models import VanishingEvent, VanishingDateTime, VanishingPolicy
-from .rough import roughen_datetime
+from .precision import Precision, reduce_precision
 
 
 def event_creator(instance: VanishingDateTime, iteration: int) -> None:
@@ -51,10 +51,10 @@ def vanishing_updater():
                 # Save Ordering
                 order_count = int(ae.vanishing_datetime.dt.strftime('%f'))
                 # Generalize Datetime
-                ae.vanishing_datetime.dt = roughen_datetime(
+                ae.vanishing_datetime.dt = reduce_precision(
                     ae.vanishing_datetime.dt,
-                    ae.vanishing_datetime.vanishing_policy.
-                    policy["events"][ae.iteration]["reduction"])
+                    ae.vanishing_datetime.vanishing_policy.policy["events"][ae.iteration]["reduction"]
+                )
                 # Re add Order, if Ordering functionality was used.
                 if ae.vanishing_datetime.vanishing_policy.ordering_key is not None:
                     ae.vanishing_datetime.dt = (ae.vanishing_datetime.dt
