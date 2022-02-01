@@ -203,37 +203,32 @@ class VanishingDateTimeTestCase(TestCase):
 
 class VanishingOrderingContextTestCase(TestCase):
 
-    def test_vanishing_ordering_context(self):
-        # Test creation of ordering without similarity_distance
+    def test_vanishing_ordering_context_allinsamecontext(self):
+        # All dates are created within the same 30sec max reduction window and
+        # should thus have incresing ordering counts
         VanishingOrderingContext.objects.create(context_key="testcase1-an-enum")
         policy1 = {
-                 "events": [
-                    {
-                        "offset": 1,
-                        "reduction": 5
-                    },
-                    {
-                        "offset": 2,
-                        "reduction": 30
-                    },
-                    ],
-                }
+            "events": [
+                { "offset": 1, "reduction": 5 },
+                { "offset": 2, "reduction": 30 },
+            ],
+        }
         an_policy = make_policy(policy=policy1,
                                 ordering_key="testcase1-an-enum")
-
+        instance = VanishingOrderingContext.objects.get(context_key="testcase1-an-enum")
         for x in range(0, 15):
-            instance = VanishingOrderingContext.objects.get(context_key="testcase1-an-enum")
             self.assertEqual(x, instance.get_and_increment(policy=an_policy))
 
-        VanishingOrderingContext.objects.create(context_key="testcase2-an-enum")
+    def test_vanishing_ordering_context_withreset(self):
+        # Between third and fourth the 1 sec sleep causes a reset of the
+        # counter because dates differ at max reduction level
+        instance = VanishingOrderingContext.objects.create(
+            context_key="testcase2-an-enum")
         policy2 = {
-                 "events": [
-                    {
-                        "offset": 1,
-                        "reduction": 1
-                    },
-                    ],
-                }
+            "events": [
+                { "offset": 1, "reduction": 1 },
+            ],
+        }
         an_policy = make_policy(policy=policy2,
                                 ordering_key="testcase2-an-enum")
         first = instance.get_and_increment(policy=an_policy)
@@ -241,6 +236,8 @@ class VanishingOrderingContextTestCase(TestCase):
         third = instance.get_and_increment(policy=an_policy)
         time.sleep(1)
         fourth = instance.get_and_increment(policy=an_policy)
+        # at least two counts happend within the same second
+        self.assertEqual(first, 0)
         self.assertTrue(first != second or second != third)
-        self.assertEqual(first, fourth)
+        self.assertEqual(fourth, 0)
         self.assertTrue(third >= fourth)

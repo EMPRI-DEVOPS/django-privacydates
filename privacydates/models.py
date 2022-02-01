@@ -113,9 +113,10 @@ class OrderingContext(models.Model):
 
 
 class VanishingOrderingContext(models.Model):
-    """Model managing the count in Ordering of Vanishing.
-    For Vanishing the counter resets,
-    when the VanishingDateTime is or will be different.
+    """Context model for keeping the ordering count for vanishing dates.
+
+    The counter resets, when the next VanishingDateTime is or will be
+    different form the last at maximum reduction level.
 
     Parameters
     ----------
@@ -128,19 +129,18 @@ class VanishingOrderingContext(models.Model):
     last_date: datetime.datetime
         Last time the context was used
     """
-    context_key = models.CharField(primary_key=True, max_length=64, editable=False)
+    context_key = models.CharField(primary_key=True, max_length=64,
+                                   editable=False)
     last_count = models.IntegerField(default=0)
     last_date = models.DateTimeField(null=True, blank=True)
 
-
     def get_and_increment(self, policy: VanishingPolicy) -> int:
-        """Get the next count from an instance of OrderingContext.
+        """Get the next count.
 
         Parameters
         ----------
         policy : VanishingPolicy
-            VanishingPolicy used for the
-             of VanishingDateTime
+            VanishingPolicy used to determine the maximum reduction level.
 
         Returns
         -------
@@ -149,13 +149,13 @@ class VanishingOrderingContext(models.Model):
         """
         max_reduction = max([e['reduction'] for e in policy.policy['events']])
         roughed_now = roughen_datetime(timezone.now(), max_reduction)
+        if self.last_count >= 999999:
+            # TODO: Warn about reaching the limit
+            return self.last_count
         if self.last_date is None or self.last_date != roughed_now:
             self.last_count = 0
             self.last_date = roughed_now
-            self.save()
-            return self.last_count
-        if self.last_count >= 999999:
-            return self.last_count
-        self.last_count = self.last_count + 1
+        else:
+            self.last_count += 1
         self.save()
         return self.last_count
