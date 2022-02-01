@@ -11,7 +11,9 @@ class Event(models.Model, VanishingDateMixIn):
     base_date = models.DateTimeField(
         null=True, blank=True, default=timezone.now)
     rough_date = fields.RoughDateField(
-        default=timezone.now, null=True, blank=True, reduction_value=30)
+        seconds=30,
+        default=timezone.now, null=True, blank=True,
+    )
     vanishing_date = fields.VanishingDateField()
     vanishing_ordering_date = fields.VanishingDateField()
     ordering_date = fields.OrderingDateField(null=True, blank=True)

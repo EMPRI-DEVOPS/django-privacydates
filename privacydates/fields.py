@@ -7,7 +7,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from .models import OrderingContext, VanishingDateTime
-from .precision import reduce_precision
+from .precision import Precision
 
 
 class RoughDateField(models.DateTimeField):
@@ -15,20 +15,31 @@ class RoughDateField(models.DateTimeField):
     """
     description = _("Rough Date (with time)")
 
-    def __init__(self, reduction_value=1, *args, **kwargs):
-        self.reduction_value = reduction_value
+    def __init__(self, *args, seconds=0, minutes=0, hours=0, days=0, weeks=0,
+                 months=0, years=0, **kwargs) -> None:
+        """DateTimeField with reduced precision.
+        Precisions can be given calendar-dependent as multiples of months and
+        years, or as multiples of calendar-independ time units like days or
+        hours.
+
+        Calendar dependent and independent precision values can not be combined.
+        """
+        self.precision = Precision(seconds, minutes, hours, days, weeks,
+                                   months, years)
         super().__init__(*args, **kwargs)
 
     def deconstruct(self):
         name, path, args, kwargs = super().deconstruct()
-        kwargs['reduction_value'] = self.reduction_value
+        kwargs['seconds'] = self.precision.seconds
+        kwargs['months'] = self.precision.months
+        kwargs['years'] = self.precision.years
         return name, path, args, kwargs
 
     def pre_save(self, model_instance, add):
         dt = super().pre_save(model_instance, add)
         if dt is None:
             return dt
-        rough_dt = reduce_precision(dt, self.reduction_value)
+        rough_dt = self.precision.apply(dt)
         setattr(model_instance, self.attname, rough_dt)
         return rough_dt
 
