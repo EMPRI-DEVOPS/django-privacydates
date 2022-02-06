@@ -4,7 +4,6 @@ from django.utils import timezone
 
 from privacydates.precision import Precision
 from privacydates.vanish import (
-    make_policy,
     update_vanishing,
     VanishingFactory,
 )
@@ -31,11 +30,10 @@ class EventListView(ListView):
 
 def event_create_view(request):
     """Creates a new Event"""
-    policy = make_policy([
-        Precision(seconds=5).after(seconds=1),
-        Precision(seconds=30).after(seconds=2),
+    van_factory = VanishingFactory(policy=[
+        Precision(minutes=5).after(seconds=15),
+        Precision(hours=1).after(minutes=1),
     ])
-    van_factory = VanishingFactory(policy)
 
     Event.objects.create(
         base_date=timezone.now(),
@@ -43,10 +41,7 @@ def event_create_view(request):
         vanishing_date=van_factory.create(timezone.now()),
         vanishing_ordering_date=van_factory.create(
             timezone.now(),
-            make_policy(
-                policy.policy,
-                ordering_key=ordering_key_gen(str(request.user) + "dtae"),
-            ),
+            context=ordering_key_gen(str(request.user) + "dtae"),
         ),
         ordering_date=ordering_key_gen(str(request.user) + "en"),
         ordering_similarity_date=ordering_key_gen(str(request.user) + "en2"),

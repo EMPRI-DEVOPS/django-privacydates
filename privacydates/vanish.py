@@ -1,6 +1,6 @@
 """Uitilites for VanishingDateField"""
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import List, Optional, overload
 
 from django.db import transaction
 from django.utils import timezone
@@ -75,15 +75,53 @@ class VanishingFactory:
     VanishingDateFields.
     """
 
+    @overload
     def __init__(self, policy: Optional[VanishingPolicy] = None):
+        ...
+    @overload
+    def __init__(self, policy: Optional[PolicySteps] = None,
+                 context: Optional[str] = None):
+        ...
+    def __init__(self, policy=None, context=""):
         """Setup factory for VanishingDateTime instances.
         A policy can be provided to use for all dates.
         """
-        self.policy = policy
+        if isinstance(policy, list):
+            self._policy_list = policy
+            self._context = context
+            self._policy_obj = None
+        elif isinstance(policy, VanishingPolicy):
+            self._policy_obj = policy
+            self._policy_list = None
+            self._context = None
+        elif policy is None:
+            pass
+        else:
+            raise TypeError("Unexpected policy type")
+
+    @property
+    def policy(self) -> Optional[VanishingPolicy]:
+        """This will lazily create a VanishingPolicy if policy steps were given
+        to init."""
+        # Laziness prevents creation of policy objects that never were used for
+        # creating vanishing dates.
+        if not self._policy_obj:
+            if not self._policy_list:
+                return None
+            self._policy_obj = make_policy(self._policy_list, self._context)
+        return self._policy_obj
 
 
+    @overload
     def create(self, date: datetime,
                policy: Optional[VanishingPolicy] = None) -> VanishingDateTime:
+        ...
+    @overload
+    def create(self, date: datetime,
+               policy: Optional[PolicySteps] = None,
+               context: Optional[str] = None) -> VanishingDateTime:
+        ...
+    def create(self, date, policy=None, context=None):
         """Creates and saves a VanishingDateTime object with the given
         datetime.
         A policy can be provided to use instead of the factory's policy.
@@ -100,9 +138,16 @@ class VanishingFactory:
         -------
         VanishingDateTime
         """
-        policy = policy or self.policy
-        if not policy:
+        if not policy and not self.policy:
             raise ValueError("No policy provided")
+        if isinstance(policy, list):
+            policy = make_policy(policy, context)
+        if context and not policy:
+            # create new VanishingPolicy reusing the global policy but with the
+            # given context key
+            policy = make_policy(self.policy.policy, context)
+        if not policy:
+            policy = self.policy
         vandate = VanishingDateTime(dt=date, vanishing_policy=policy)
         vandate.save()
         return vandate
