@@ -1,9 +1,13 @@
 from django.shortcuts import redirect
-from django.views.generic import (ListView)
+from django.views.generic import ListView
 from django.utils import timezone
 
-from privacydates.vanish import make_policy, vanishing_updater,\
-    vanishingdatetime_creator
+from privacydates.precision import Precision
+from privacydates.vanish import (
+    make_policy,
+    update_vanishing,
+    VanishingFactory,
+)
 from privacydates.order import ordering_key_gen
 
 from .models import Event
@@ -27,30 +31,20 @@ class EventListView(ListView):
 
 def event_create_view(request):
     """Creates a new Event"""
-    policy_dict = {
-        "events": [
-            {
-                "offset": 1,
-                "reduction": 5
-            },
-            {
-                "offset": 2,
-                "reduction": 30
-            },
-        ],
-    }
+    policy = make_policy([
+        Precision(seconds=5).after(seconds=1),
+        Precision(seconds=30).after(seconds=2),
+    ])
+    van_factory = VanishingFactory(policy)
 
     Event.objects.create(
         base_date=timezone.now(),
         rough_date=timezone.now(),
-        vanishing_date=vanishingdatetime_creator(
-            timezone.now(),
-            make_policy(policy_dict),
-        ),
-        vanishing_ordering_date=vanishingdatetime_creator(
+        vanishing_date=van_factory.create(timezone.now()),
+        vanishing_ordering_date=van_factory.create(
             timezone.now(),
             make_policy(
-                policy_dict,
+                policy.policy,
                 ordering_key=ordering_key_gen(str(request.user) + "dtae"),
             ),
         ),
@@ -68,5 +62,5 @@ def event_delete_all_redirect(request):
 
 def vanishing_update(request):
     """Runs vanishing_update() to trigger vanishing of VanishingDateTimes"""
-    vanishing_updater()
+    update_vanishing()
     return redirect('/?order=base_date')
