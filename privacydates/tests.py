@@ -96,16 +96,22 @@ class VanishingDateTimeTestCase(TestCase):
         now = timezone.now()
         dta1 = VanishingDateTime.objects.create(dt=now, vanishing_policy=policy1)
         dta2 = VanishingFactory().create(now, policy=policy1)
+        self.assertEqual(now, dta1.dt)
         self.assertEqual(dta1.dt, dta2.dt)
         self.assertEqual(dta1.vanishing_policy, dta2.vanishing_policy)
+        self.assertEqual(dta1.events.count(), 1)
 
+        # reduction should be applied immediately and no events created
         policy2 = make_policy([
             Precision(seconds=5).after(seconds=0),
         ])
         dta3 = VanishingDateTime.objects.create(dt=now, vanishing_policy=policy2)
         dta4 = VanishingFactory().create(now, policy=policy2)
+        self.assertNotEqual(now, dta3.dt)
         self.assertEqual(dta3.dt, dta4.dt)
         self.assertEqual(dta3.vanishing_policy, dta4.vanishing_policy)
+        self.assertEqual(dta3.events.count(), 0)
+        self.assertEqual(dta4.events.count(), 0)
 
         policy3 = make_policy([
             Precision(seconds=120).after(seconds=550000),
@@ -126,6 +132,7 @@ class VanishingDateTimeTestCase(TestCase):
         self.assertEqual(dta7.dt, dta8.dt)
         self.assertEqual(dta7.vanishing_policy, dta8.vanishing_policy)
         self.assertEqual(dta7.vanishing_policy.policy, policy4.policy)
+        self.assertEqual(dta8.events.count(), 1)
 
     def test_faulty_vanishing_policies(self):
         now = timezone.now()

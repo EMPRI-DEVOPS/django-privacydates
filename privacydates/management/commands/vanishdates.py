@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 
-from ...vanish import vanishing_updater
+from ...vanish import update_vanishing
 
 
 class Command(BaseCommand):
@@ -10,6 +10,5 @@ class Command(BaseCommand):
     help = 'Runs a task that executes all scheduled vanishing_dates'
 
     def handle(self, *args, **options):
-        vanishing_updater()
-
+        update_vanishing()
         self.stdout.write(self.style.SUCCESS('Vanishing executed'))

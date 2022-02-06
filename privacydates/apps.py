@@ -1,5 +1,5 @@
 from django.apps import AppConfig
-from django.db.models.signals import post_delete, post_save
+from django.db.models.signals import post_delete
 
 
 class PrivacydatesConfig(AppConfig):
@@ -7,13 +7,8 @@ class PrivacydatesConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
 
     def ready(self):
-        from .signals import delete_datetime_of_deleted_parent, event_creator_signal_receiver
         from .mixins import VanishingDateMixIn
-        from .models import VanishingDateTime
-
-        # Register post-save-signal for VanishingDateTime
-        # to start creation of vanishing events
-        post_save.connect(event_creator_signal_receiver, sender=VanishingDateTime)
+        from .signals import delete_datetime_of_deleted_parent
 
         # Register post_delete-Signal for all Subclasses of VanishingDateMixin
         for sub_class in VanishingDateMixIn.__subclasses__():

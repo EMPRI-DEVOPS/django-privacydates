@@ -60,7 +60,9 @@ class VanishingEvent(models.Model):
     iteration: integer
         the iteration of vanishing events for vanishing_datetime
     """
-    vanishing_datetime = models.ForeignKey(VanishingDateTime, on_delete=models.CASCADE)
+    vanishing_datetime = models.ForeignKey(VanishingDateTime,
+                                           related_name="events",
+                                           on_delete=models.CASCADE)
     event_date = models.DateTimeField()
     iteration = models.IntegerField()
 
