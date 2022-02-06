@@ -4,13 +4,14 @@ from django.db import models
 from django.utils import timezone
 
 from .precision import Precision, reduce_precision
+from .policy import PolicyEncoder, PolicyDecoder
 
 
 class VanishingPolicy(models.Model):
     """Model used by VanishingDateTime for storing the rules that
      specify the VanishingEvents
     """
-    policy = models.JSONField()
+    policy = models.JSONField(encoder=PolicyEncoder, decoder=PolicyDecoder)
     ordering_key = models.CharField(null=True, blank=True, max_length=64)
 
     class Meta:
@@ -147,8 +148,8 @@ class VanishingOrderingContext(models.Model):
         int
             lowest unused number of the context, since the last reset
         """
-        max_reduction = max([e['reduction'] for e in policy.policy['events']])
-        roughed_now = reduce_precision(timezone.now(), max_reduction)
+        last_precision: Precision = policy.policy[-1]  # last reduction step
+        roughed_now = last_precision.apply(timezone.now())
         if self.last_count >= 999999:
             # TODO: Warn about reaching the limit
             return self.last_count

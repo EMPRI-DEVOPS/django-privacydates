@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from .vanish import event_creator
 from .models import VanishingDateTime, VanishingOrderingContext
-from .precision import reduce_precision
+from .precision import Precision
 
 
 def event_creator_signal_receiver(sender, instance, created, **kwargs):
@@ -23,11 +23,10 @@ def event_creator_signal_receiver(sender, instance, created, **kwargs):
     if created:
         # Check if first reduction is at time offset 0.
         # If true, roughen instantly and start event_creator with iteration 1.
-        policy_iteration = instance.vanishing_policy.policy["events"][0]
-        if policy_iteration["offset"] == 0:
-            instance.dt = reduce_precision(instance.dt,
-                                           policy_iteration["reduction"])
-            if len(instance.vanishing_policy.policy["events"]) > 1:
+        first_precision: Precision = instance.vanishing_policy.policy[0]
+        if first_precision.is_applied_immediately():
+            instance.dt = first_precision.apply(instance.dt)
+            if len(instance.vanishing_policy.policy) > 1:
                 event_creator(instance, iteration=1)
         else:
             event_creator(instance, iteration=0)

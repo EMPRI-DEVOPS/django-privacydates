@@ -1,11 +1,12 @@
 """Date precision utilities"""
 from datetime import datetime, timedelta, timezone
+from typing import Dict, Optional
 
 
 class Precision:
     """Precision class for specifying the precision level of dates."""
     def __init__(self, seconds=0, minutes=0, hours=0, days=0, weeks=0,
-                 months=0, years=0) -> None:
+                 months=0, years=0, after_seconds=0) -> None:
         """
         Precisions can be given calendar-dependent as multiples of months and
         years, or as multiples of calendar-independ time units like days or
@@ -40,6 +41,7 @@ class Precision:
         self.seconds = total_sec
         self.months = months
         self.years = years
+        self.apply_after_seconds: Optional[int] = after_seconds or None
 
     def apply(self, dt: datetime) -> datetime:
         """Apply the precision level to the given date and return the reduced
@@ -54,6 +56,30 @@ class Precision:
             return dt.replace(year=(dt.year // self.years)*self.years)
         raise RuntimeError("Unexpected precision")
 
+    def after(self, seconds=0, minutes=0, hours=0, days=0, weeks=0) -> 'Precision':
+        """Set a delay after which the precision should be applied.
+        This is for usage in combination with VanishingDate.
+        Return the modified Precision for chaining.
+        """
+        delay = timedelta(days=days, seconds=seconds, minutes=minutes,
+                          hours=hours, weeks=weeks)
+        total_sec = int(delay.total_seconds())
+        if total_sec < 0:
+            raise ValueError("A possitive delay must be given")
+        self.apply_after_seconds = total_sec
+        return self
+
+    @property
+    def apply_after_timedelta(self) -> timedelta:
+        if self.apply_after_seconds is None:
+            raise ValueError("No apply delay set")
+        return timedelta(seconds=self.apply_after_seconds)
+
+    def is_applied_immediately(self) -> bool:
+        """Return if precision should apply immediately or not."""
+        return (self.apply_after_seconds is None
+                or self.apply_after_seconds == 0)
+
     def __repr__(self) -> str:
         fmt = "Precision(%s=%d)"
         if self.seconds:
@@ -63,6 +89,23 @@ class Precision:
         if self.years:
             return fmt % ("years", self.years)
         raise RuntimeError("Unexpected precision")
+
+    def to_dict(self) -> Dict[str, int]:
+        return dict(
+            seconds=self.seconds,
+            months=self.months,
+            years=self.years,
+            after_seconds=self.apply_after_seconds or 0,
+        )
+
+    @classmethod
+    def from_dict(cls, precision_dict: Dict[str, int]) -> "Precision":
+        return cls(
+            seconds=precision_dict["seconds"],
+            months=precision_dict["months"],
+            years=precision_dict["years"],
+            after_seconds=precision_dict["after_seconds"],
+        )
 
 
 def reduce_precision(dt: datetime, reduction_divisor: int) -> datetime:

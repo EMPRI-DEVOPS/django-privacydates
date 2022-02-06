@@ -6,8 +6,8 @@ from django.test import TestCase
 from django.utils import timezone
 
 from .models import OrderingContext, VanishingDateTime, VanishingOrderingContext
-from .precision import reduce_precision
-from .vanish import vanishingdatetime_creator, make_policy
+from .precision import Precision, reduce_precision
+from .vanish import VanishingFactory, make_policy
 from .order import ordering_key_gen
 
 
@@ -89,82 +89,43 @@ class OrderingContextTestCase(TestCase):
 class VanishingDateTimeTestCase(TestCase):
 
     def test_vanishingdatetime_creation(self):
-        policy1 = {
-                 "events": [
-                    {
-                        "offset": 1,
-                        "reduction": 5
-                    },
-                    {
-                        "offset": 2,
-                        "reduction": 30
-                    },
-                    ],
-                }
+        policy1 = make_policy([
+            Precision(seconds=5).after(seconds=1),
+            Precision(seconds=30).after(seconds=2),
+        ])
         now = timezone.now()
-        v_policy = make_policy(policy=policy1)
-        dta1 = VanishingDateTime.objects.create(dt=now, vanishing_policy=v_policy)
-        dta2 = vanishingdatetime_creator(dt=now, vanishing_policy=v_policy)
+        dta1 = VanishingDateTime.objects.create(dt=now, vanishing_policy=policy1)
+        dta2 = VanishingFactory().create(now, policy=policy1)
         self.assertEqual(dta1.dt, dta2.dt)
         self.assertEqual(dta1.vanishing_policy, dta2.vanishing_policy)
 
-        policy2 = {
-            "events": [
-                {
-                    "offset": 0,
-                    "reduction": 5
-                },
-            ],
-        }
-
-        v_policy2 = make_policy(policy=policy2)
-        dta3 = VanishingDateTime.objects.create(dt=now, vanishing_policy=v_policy2)
-        dta4 = vanishingdatetime_creator(dt=now, vanishing_policy=v_policy2)
+        policy2 = make_policy([
+            Precision(seconds=5).after(seconds=0),
+        ])
+        dta3 = VanishingDateTime.objects.create(dt=now, vanishing_policy=policy2)
+        dta4 = VanishingFactory().create(now, policy=policy2)
         self.assertEqual(dta3.dt, dta4.dt)
         self.assertEqual(dta3.vanishing_policy, dta4.vanishing_policy)
 
-        policy3 = {
-            "events": [
-                {
-                    "offset": 550000,
-                    "reduction": 120
-                },
-            ],
-        }
-
-        v_policy3 = make_policy(policy=policy3)
-        dta5 = VanishingDateTime.objects.create(dt=now, vanishing_policy=v_policy3)
-        dta6 = vanishingdatetime_creator(dt=now, vanishing_policy=v_policy3)
+        policy3 = make_policy([
+            Precision(seconds=120).after(seconds=550000),
+        ])
+        dta5 = VanishingDateTime.objects.create(dt=now, vanishing_policy=policy3)
+        dta6 = VanishingFactory().create(now, policy=policy3)
         self.assertEqual(dta5.dt, dta6.dt)
         self.assertEqual(dta5.vanishing_policy, dta6.vanishing_policy)
 
-        policy4 = {
-            "events": [
-                {
-                    "offset": 1,
-                    "reduction": 5
-                },
-                {
-                    "offset": 60,
-                    "reduction": 30
-                },
-                {
-                    "offset": 550000,
-                    "reduction": 86400
-                },
-                {
-                    "offset": 1110000,
-                    "reduction": 604800
-                },
-            ],
-        }
-
-        v_policy4 = make_policy(policy=policy4)
-        dta7 = VanishingDateTime.objects.create(dt=now, vanishing_policy=v_policy4)
-        dta8 = vanishingdatetime_creator(dt=now, vanishing_policy=v_policy4)
+        policy4 = make_policy([
+            Precision(seconds=5).after(seconds=1),
+            Precision(seconds=30).after(seconds=60),
+            Precision(seconds=86400).after(seconds=550000),
+            Precision(seconds=604800).after(seconds=1110000),
+        ])
+        dta7 = VanishingDateTime.objects.create(dt=now, vanishing_policy=policy4)
+        dta8 = VanishingFactory().create(now, policy=policy4)
         self.assertEqual(dta7.dt, dta8.dt)
         self.assertEqual(dta7.vanishing_policy, dta8.vanishing_policy)
-        self.assertEqual(dta7.vanishing_policy.policy, policy4)
+        self.assertEqual(dta7.vanishing_policy.policy, policy4.policy)
 
     def test_faulty_vanishing_policies(self):
         now = timezone.now()
@@ -172,31 +133,7 @@ class VanishingDateTimeTestCase(TestCase):
         with self.assertRaises(ValueError):
             VanishingDateTime.objects.create(dt=now,
                                              vanishing_policy=
-                                             make_policy(policy={}))
-
-        # Test empty list in dict for VanishingPolicy
-        with self.assertRaises(ValueError):
-            VanishingDateTime.objects.create(dt=now,
-                                             vanishing_policy=
-                                             make_policy(
-                                                    policy={"events": []})
-                                             )
-
-        # Test empty list in dict for VanishingPolicy
-        faulty_policy = {
-            "events": [
-                {
-                    "offset": 1,
-                    "reduction": 5
-                },
-                {
-                },
-            ],
-        }
-        with self.assertRaises(ValueError):
-            VanishingDateTime.objects.create(dt=now,
-                                             vanishing_policy=
-                                             make_policy(policy=faulty_policy))
+                                             make_policy(policy=[]))
 
 
 class VanishingOrderingContextTestCase(TestCase):
@@ -205,35 +142,27 @@ class VanishingOrderingContextTestCase(TestCase):
         # All dates are created within the same 30sec max reduction window and
         # should thus have incresing ordering counts
         VanishingOrderingContext.objects.create(context_key="testcase1-an-enum")
-        policy1 = {
-            "events": [
-                { "offset": 1, "reduction": 5 },
-                { "offset": 2, "reduction": 30 },
-            ],
-        }
-        an_policy = make_policy(policy=policy1,
-                                ordering_key="testcase1-an-enum")
+        policy = make_policy([
+            Precision(seconds=5).after(seconds=1),
+            Precision(seconds=30).after(seconds=2),
+        ], ordering_key="testcase1-an-enum")
         instance = VanishingOrderingContext.objects.get(context_key="testcase1-an-enum")
-        for x in range(0, 15):
-            self.assertEqual(x, instance.get_and_increment(policy=an_policy))
+        for i in range(0, 15):
+            self.assertEqual(i, instance.get_and_increment(policy=policy))
 
     def test_vanishing_ordering_context_withreset(self):
         # Between third and fourth the 1 sec sleep causes a reset of the
         # counter because dates differ at max reduction level
         instance = VanishingOrderingContext.objects.create(
             context_key="testcase2-an-enum")
-        policy2 = {
-            "events": [
-                { "offset": 1, "reduction": 1 },
-            ],
-        }
-        an_policy = make_policy(policy=policy2,
-                                ordering_key="testcase2-an-enum")
-        first = instance.get_and_increment(policy=an_policy)
-        second = instance.get_and_increment(policy=an_policy)
-        third = instance.get_and_increment(policy=an_policy)
+        policy = make_policy([
+            Precision(seconds=1).after(seconds=1),
+        ], ordering_key="testcase2-an-enum")
+        first = instance.get_and_increment(policy=policy)
+        second = instance.get_and_increment(policy=policy)
+        third = instance.get_and_increment(policy=policy)
         time.sleep(1)
-        fourth = instance.get_and_increment(policy=an_policy)
+        fourth = instance.get_and_increment(policy=policy)
         # at least two counts happend within the same second
         self.assertEqual(first, 0)
         self.assertTrue(first != second or second != third)
