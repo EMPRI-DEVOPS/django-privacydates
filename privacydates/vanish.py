@@ -1,5 +1,5 @@
 """Uitilites for VanishingDateField"""
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Optional
 
 from django.db import transaction
@@ -61,9 +61,7 @@ def execute_event(event: VanishingEvent):
     vandate.dt = new_precision.apply(vandate.dt)
     # Re-add order, if ordering functionality was used.
     if vandate.vanishing_policy.ordering_key:
-        vandate.dt = vandate.dt.replace(
-            microseconds=order_count
-        )
+        vandate.dt += timedelta(microseconds=order_count)
     vandate.save()
     # Create next event, if more step are planned
     next_iteration = event.iteration + 1
