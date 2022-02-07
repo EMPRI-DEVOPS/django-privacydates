@@ -66,6 +66,14 @@ class VanishingEvent(models.Model):
     event_date = models.DateTimeField()
     iteration = models.IntegerField()
 
+    def __repr__(self) -> str:
+        return ("VanishingEvent(vanishing_datetime=%r,"
+                "event_date=%r,iteration=%d)") % (
+                    self.vanishing_datetime,
+                    self.event_date,
+                    self.iteration,
+                )
+
 
 class BasicOrderingContext(models.Model):
     """Abstract base for ordering contexts"""
