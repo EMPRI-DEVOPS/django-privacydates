@@ -1,11 +1,13 @@
 """Auxiliary models for maintaining vanishing dates"""
+from datetime import datetime
 import uuid
 import warnings
+from typing import Optional
 
 from django.db import models
 from django.utils import timezone
 
-from .precision import Precision, reduce_precision
+from .precision import Precision
 from .policy import PolicyEncoder, PolicyDecoder
 
 
@@ -65,7 +67,56 @@ class VanishingEvent(models.Model):
     iteration = models.IntegerField()
 
 
-class OrderingContext(models.Model):
+class BasicOrderingContext(models.Model):
+    """Abstract base for ordering contexts"""
+    context_key = models.CharField(primary_key=True, max_length=64,
+                                   editable=False)
+    last_count = models.PositiveIntegerField(default=0)
+    last_date = models.DateTimeField(null=True)
+
+    def _next(self, max_count: int,
+              reset_precision: Optional[Precision] = None,
+              similarity_precision: Optional[Precision] = None) -> int:
+        """Get the next count (lowest unused).
+        The same count is given for timestamps in
+        the same rouged time slot.
+
+        Returns
+        -------
+        int
+            lowest unused number of the context
+        """
+        now = timezone.now()
+        rough_now: Optional[datetime] = None
+        if similarity_precision:
+            rough_now = similarity_precision.apply(now)
+            if self.last_date and self.last_date == rough_now:
+                # within similarity distance
+                return self.last_count
+            self.last_date = rough_now
+        impending_overflow = bool(self.last_count >= max_count)
+        self.last_count += 1
+        # check if we can/should reset the counter
+        # for vanishing date ordering
+        if reset_precision:
+            # increment if dates match in reset_precision
+            # otherwise, if they differ, reset
+            rough_now = reset_precision.apply(now)
+            if self.last_date is None or self.last_date != rough_now:
+                self.last_count = 0
+                impending_overflow = False
+        self.last_date = rough_now
+        if impending_overflow:
+            warnings.warn("Overflow in ordering counter %s" % self.context_key)
+            self.last_count = max_count
+        self.save()
+        return self.last_count
+
+    class Meta:
+        abstract = True
+
+
+class OrderingContext(BasicOrderingContext):
     """Model managing Ordering
 
     Parameters
@@ -83,10 +134,9 @@ class OrderingContext(models.Model):
         Length in seconds of time slot within items share the same ordering
         number
     """
-    context_key = models.CharField(primary_key=True, max_length=64, editable=False)
-    last_count = models.IntegerField(default=0)
-    similarity_distance = models.IntegerField(default=0)
-    last_date = models.DateTimeField(null=True)
+    MAX_COUNT = 2147483647  # max safe positive integer
+
+    similarity_distance = models.PositiveIntegerField(default=0)
 
     def next(self) -> int:
         """Get the next count (lowest unused).
@@ -99,18 +149,13 @@ class OrderingContext(models.Model):
             lowest unused number of the context
         """
         if self.similarity_distance > 0:
-            rough_now = reduce_precision(timezone.now(),
-                                         self.similarity_distance)
-            if self.last_date and self.last_date == rough_now:
-                # within similarity distance
-                return self.last_count
-            self.last_date = rough_now
-        self.last_count += 1
-        self.save()
-        return self.last_count
+            precision = Precision(seconds=self.similarity_distance)
+        else:
+            precision = None
+        return self._next(self.MAX_COUNT, similarity_precision=precision)
 
 
-class VanishingOrderingContext(models.Model):
+class VanishingOrderingContext(BasicOrderingContext):
     """Stores the ordering count for vanishing dates.
 
     The counter resets, when the next VanishingDateTime is or will be
@@ -127,10 +172,8 @@ class VanishingOrderingContext(models.Model):
     last_date: datetime
         Datetime when the last count was assigned
     """
-    context_key = models.CharField(primary_key=True, max_length=64,
-                                   editable=False)
-    last_count = models.IntegerField(default=0)
-    last_date = models.DateTimeField(null=True, blank=True)
+    # maximum counter fitting in microseconds of DateTimeField
+    MAX_COUNT = 999999
 
     def next(self, policy: VanishingPolicy) -> int:
         """Get the next count.
@@ -146,14 +189,4 @@ class VanishingOrderingContext(models.Model):
             lowest unused number of the context, since the last reset
         """
         last_precision: Precision = policy.policy[-1]  # last reduction step
-        roughed_now = last_precision.apply(timezone.now())
-        if self.last_count >= 999999:
-            warnings.warn("Overflow in ordering counter %s" % self.context_key)
-            return self.last_count
-        if not self.last_date or self.last_date != roughed_now:
-            self.last_count = 0
-            self.last_date = roughed_now
-        else:
-            self.last_count += 1
-        self.save()
-        return self.last_count
+        return self._next(self.MAX_COUNT, reset_precision=last_precision)
