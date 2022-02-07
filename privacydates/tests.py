@@ -59,17 +59,17 @@ class OrderingContextTestCase(TestCase):
         OrderingContext.objects.create(context_key="testcase1-ordering")
         for x in range(1, 15):
             instance = OrderingContext.objects.get(context_key="testcase1-ordering")
-            self.assertEqual(x, instance.get_and_increment())
+            self.assertEqual(x, instance.next())
 
         # Test creation of ordering dates with similarity_distance =1
         OrderingContext.objects.create(context_key="testcase2-ordering",
                                        similarity_distance=1)
         instance = OrderingContext.objects.get(context_key="testcase2-ordering")
-        first = instance.get_and_increment()
-        second = instance.get_and_increment()
-        third = instance.get_and_increment()
+        first = instance.next()
+        second = instance.next()
+        third = instance.next()
         time.sleep(1)
-        fourth = instance.get_and_increment()
+        fourth = instance.next()
         self.assertTrue(first == second or second == third)
         self.assertNotEqual(third, fourth)
 
@@ -155,7 +155,7 @@ class VanishingOrderingContextTestCase(TestCase):
         ], ordering_key="testcase1-an-enum")
         instance = VanishingOrderingContext.objects.get(context_key="testcase1-an-enum")
         for i in range(0, 15):
-            self.assertEqual(i, instance.get_and_increment(policy=policy))
+            self.assertEqual(i, instance.next(policy=policy))
 
     def test_vanishing_ordering_context_withreset(self):
         # Between third and fourth the 1 sec sleep causes a reset of the
@@ -165,11 +165,11 @@ class VanishingOrderingContextTestCase(TestCase):
         policy = make_policy([
             Precision(seconds=1).after(seconds=1),
         ], ordering_key="testcase2-an-enum")
-        first = instance.get_and_increment(policy=policy)
-        second = instance.get_and_increment(policy=policy)
-        third = instance.get_and_increment(policy=policy)
+        first = instance.next(policy=policy)
+        second = instance.next(policy=policy)
+        third = instance.next(policy=policy)
         time.sleep(1)
-        fourth = instance.get_and_increment(policy=policy)
+        fourth = instance.next(policy=policy)
         # at least two counts happend within the same second
         self.assertEqual(first, 0)
         self.assertTrue(first != second or second != third)

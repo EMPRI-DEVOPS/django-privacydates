@@ -61,20 +61,23 @@ class OrderingDateField(models.IntegerField):
 
 
     def pre_save(self, model_instance, add):
-        # Get OrderingContext for given context_key
+        """If the value assigned to the field is a str then treat it as a
+        context key, fetch the next ordering number and use it as field value
+        instead.
+        """
         field_input = getattr(model_instance, self.attname)
         if field_input is None:
             return field_input
-        if type(field_input) is int:
+        if isinstance(field_input, int):
             return field_input
-        if type(field_input) is not str:
-            raise TypeError('Ordering key must be a string, but is ' + str(type(field_input)))
-        context_object, created = OrderingContext.objects.\
-            get_or_create(context_key=field_input,
-                          similarity_distance=self.similarity_distance)
-        # Get count from OrderingContext
-        count = context_object.get_and_increment()
-        return count
+        if not isinstance(field_input, str):
+            raise TypeError('Ordering key must be a string, but is '
+                            + str(type(field_input)))
+        context, _ = OrderingContext.objects.get_or_create(
+            context_key=field_input,
+            similarity_distance=self.similarity_distance,
+        )
+        return context.next()
 
 
 class VanishingDateField(models.OneToOneField):

@@ -1,4 +1,6 @@
+"""Auxiliary models for maintaining vanishing dates"""
 import uuid
+import warnings
 
 from django.db import models
 from django.utils import timezone
@@ -19,19 +21,16 @@ class VanishingPolicy(models.Model):
 
 
 class VanishingDateTime(models.Model):
-    """Model that implements Time Unit Annihilation for
-     Django DateTimeFields.
+    """Stores datetime and policy information for a vanishing date
 
     Parameters
     ----------
-    dt : datetime.datetime
-        initial and internal datetime.datetime,
-         of which information vanishes
-        The datetime which should be reduced
+    dt : datetime
+        Initial datetime of which information vanishes
 
     vanishing_policy: VanishingPolicy
-        Instance of VanishingPolicy defining the vanishing plan
-         and controlling ordering functionality
+        Instance of VanishingPolicy defining the reduction policy
+        and controlling the optional ordering context.
     """
     dta_key = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     dt = models.DateTimeField()
@@ -45,20 +44,19 @@ class VanishingDateTime(models.Model):
 
 
 class VanishingEvent(models.Model):
-    """An VanishingEvent represent a single plannend Vanishing
+    """A VanishingEvent represent a single plannend reduction step
      of one VanishingDateTime instance on a given point of time.
-    Instances are regulary created by event_creator
 
     Parameters
     ----------
     vanishing_datetime : VanishingDateTime
         The VanishingDateTime instance the event is set for
 
-    event_date: datetime.datetime
-        The date and time the vanishing event is scheduled at.
+    event_date: datetime
+        The date and time the vanishing event is scheduled at
 
-    iteration: integer
-        the iteration of vanishing events for vanishing_datetime
+    iteration: int
+        The step number within the vanishing policy
     """
     vanishing_datetime = models.ForeignKey(VanishingDateTime,
                                            related_name="events",
@@ -72,72 +70,69 @@ class OrderingContext(models.Model):
 
     Parameters
     ----------
-    context_key : String
-        Django CharField (max_length=64) as unique identifier for
-         the instance
+    context_key : str
+        64 character key unique identifier for the context
 
-    last_count: integer
-        Last count given by the instance
+    last_count: int
+        Last count or ordering number assigned for this context
 
-    last_date: datetime.datetime
-        The roughend Date the last count was given
+    last_date: datetime
+        Datetime when the last count was assigned
 
-    similarity_distance: integer
-        the length of the roughend time slot in seconds
+    similarity_distance: int
+        Length in seconds of time slot within items share the same ordering
+        number
     """
     context_key = models.CharField(primary_key=True, max_length=64, editable=False)
     last_count = models.IntegerField(default=0)
     similarity_distance = models.IntegerField(default=0)
     last_date = models.DateTimeField(null=True)
 
-    def get_and_increment(self) -> int:
-        """Get the next count (lowest unused) from an instance of
-        OrderingContext. If similarity_distance is set to be > 0
-
-        the same count is given for timestamps in the same generalized
-        time slot. The size is defined by similarity_distance
+    def next(self) -> int:
+        """Get the next count (lowest unused).
+        If similarity_distance is >0, the same count is given for timestamps in
+        the same rouged time slot.
 
         Returns
         -------
         int
             lowest unused number of the context
         """
-        if self.similarity_distance >= 1:
+        if self.similarity_distance > 0:
             rough_now = reduce_precision(timezone.now(),
                                          self.similarity_distance)
-
-            if self.last_date is not None and self.last_date == rough_now:
+            if self.last_date and self.last_date == rough_now:
+                # within similarity distance
                 return self.last_count
             self.last_date = rough_now
-
         self.last_count += 1
         self.save()
         return self.last_count
 
 
 class VanishingOrderingContext(models.Model):
-    """Context model for keeping the ordering count for vanishing dates.
+    """Stores the ordering count for vanishing dates.
 
     The counter resets, when the next VanishingDateTime is or will be
     different form the last at maximum reduction level.
 
     Parameters
     ----------
-    context_key : String
-        Django CharField (max_length=64) as unique identifier for the instance
+    context_key : str
+        64 character key unique identifier for the context
 
-    last_count: integer
-        Last count given by the instance
+    last_count: int
+        Last count or ordering number assigned for this context
 
-    last_date: datetime.datetime
-        Last time the context was used
+    last_date: datetime
+        Datetime when the last count was assigned
     """
     context_key = models.CharField(primary_key=True, max_length=64,
                                    editable=False)
     last_count = models.IntegerField(default=0)
     last_date = models.DateTimeField(null=True, blank=True)
 
-    def get_and_increment(self, policy: VanishingPolicy) -> int:
+    def next(self, policy: VanishingPolicy) -> int:
         """Get the next count.
 
         Parameters
@@ -153,9 +148,9 @@ class VanishingOrderingContext(models.Model):
         last_precision: Precision = policy.policy[-1]  # last reduction step
         roughed_now = last_precision.apply(timezone.now())
         if self.last_count >= 999999:
-            # TODO: Warn about reaching the limit
+            warnings.warn("Overflow in ordering counter %s" % self.context_key)
             return self.last_count
-        if self.last_date is None or self.last_date != roughed_now:
+        if not self.last_date or self.last_date != roughed_now:
             self.last_count = 0
             self.last_date = roughed_now
         else:

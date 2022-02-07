@@ -29,7 +29,7 @@ def create_initial_vanishing_event(sender, instance, created, **kwargs):
     if enum_key is not None:
         # Use microseconds for ordering.
         context, _ = VanishingOrderingContext.objects.get_or_create(context_key=enum_key)
-        count = context.get_and_increment(instance.vanishing_policy)
+        count = context.next(instance.vanishing_policy)
         instance.dt = instance.dt.replace(microsecond=count)
     instance.save()
 
