@@ -31,8 +31,8 @@ class EventListView(ListView):
 def event_create_view(request):
     """Creates a new Event"""
     van_factory = VanishingFactory(policy=[
-        Precision(minutes=5).after(seconds=15),
-        Precision(hours=1).after(minutes=1),
+        Precision(seconds=30).after(seconds=10),
+        Precision(minutes=15).after(minutes=1),
     ])
 
     Event.objects.create(
