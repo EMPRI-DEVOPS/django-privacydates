@@ -19,3 +19,6 @@ class Event(models.Model, VanishingDateMixIn):
     ordering_date = fields.OrderingDateField(null=True, blank=True, hashed=True)
     ordering_similarity_date = fields.OrderingDateField(
         null=True, blank=True, hashed=False, similarity_distance=2)
+
+class VDEvent(models.Model, VanishingDateMixIn):
+    date = fields.VanishingDateField()

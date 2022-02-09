@@ -64,26 +64,31 @@ class EventTest(TestCase):
             1
         )
 
-    def test_vdtorder(self):
+    def test_vdtorder_insertion_preserved(self):
+        """Evaluate whether the chronological order of VanishingDates is
+        maintained by databases through the insertion order despite all
+        VanishingDates having the same date value.
+        Ideally: this test should fail to show that instertion orders are not
+        maintained. But that's currently not the case.
+        """
         events = []
+        factory = VanishingFactory(policy=self.policy1)
         for _ in range(50):
             e = VDEvent(
-                date=VanishingFactory().create(
-                    timezone.now(),
-                    policy=self.policy1,
-                ),
+                date=factory.create(timezone.now()),
             )
             e.save()
             e.refresh_from_db()
             events.append(e)
-        vdts = list(VanishingDateTime.objects.order_by("dt").all())
-        # TODO orders by insertion order if all values are the same
-        e_vdts = [e.date for e in events]
+        # fetch objects ordered by date value
+        vdts_by_date = list(VanishingDateTime.objects.order_by("dt").all())
+        # all dates are the same
+        self.assertEqual(len(set(vd.dt for vd in vdts_by_date)), 1)
+        # list objects by their chronological insertion order
+        vdts_by_insertion = [e.date for e in events]
+        # compare if the two have the same order
         def uuid_list(dts):
             return [vd.pk for vd in dts]
-        ids_fetched = uuid_list(vdts)
-        ids_inserted = uuid_list(e_vdts)
-        self.assertEqual(len(set(vd.dt for vd in vdts)), 1)
-        self.assertEqual(len(set(ids_inserted)), len(set(ids_fetched)))
-        self.assertEqual(set(ids_inserted), set(ids_fetched))
-        self.assertEqual(ids_inserted, ids_fetched)
+        ids_by_date = uuid_list(vdts_by_date)
+        ids_by_insertion = uuid_list(vdts_by_insertion)
+        self.assertEqual(ids_by_insertion, ids_by_date)
