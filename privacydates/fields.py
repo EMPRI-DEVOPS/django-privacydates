@@ -86,8 +86,8 @@ class OrderingDateField(models.IntegerField):
         return context.next()
 
 
-class VanishingDateField(models.OneToOneField):
-    """Django Field so save an one-to-to relation to an instance of
+class VanishingDateField(models.ForeignKey):
+    """Django Field so save a ForeignKey an instance of
      VanishingDateTime
     """
     description = _("Field handles relationship to VanishingDateTime")
