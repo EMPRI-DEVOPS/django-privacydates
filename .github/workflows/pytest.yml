@@ -28,4 +28,8 @@ jobs:
       run: |
         cd privacydates/
         python runtests.py
+    - name: Run sample_project tests
+      run: |
+        cd sample_project/
+        python ./manage.py test
 
