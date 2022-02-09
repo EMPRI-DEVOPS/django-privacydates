@@ -5,10 +5,15 @@ from datetime import timedelta
 from django.test import TestCase
 from django.utils import timezone
 
-from .models import OrderingContext, VanishingDateTime, VanishingOrderingContext
+from .models import (
+    OrderingContext,
+    VanishingDateTime,
+    VanishingOrderingContext,
+    VanishingPolicy,
+)
+from .order import hash_context_key
 from .precision import Precision, reduce_precision
 from .vanish import VanishingFactory, make_policy
-from .order import ordering_key_gen
 
 
 class RoughDateTestCase(TestCase):
@@ -73,11 +78,11 @@ class OrderingContextTestCase(TestCase):
         self.assertTrue(first == second or second == third)
         self.assertNotEqual(third, fourth)
 
-    def test_ordering_key_gen(self):
+    def test_hash_context_key(self):
         key_string = "this-is-a-test"
-        key1 = ordering_key_gen(key_string)
+        key1 = hash_context_key(key_string)
         self.assertEqual(type(key1), str)
-        self.assertEqual(key1, ordering_key_gen(key_string))
+        self.assertEqual(key1, hash_context_key(key_string))
 
         ec = OrderingContext.objects.create(context_key=key1)
         ec.save()
@@ -96,8 +101,10 @@ class VanishingDateTimeTestCase(TestCase):
         now = timezone.now()
         dta1 = VanishingDateTime.objects.create(dt=now, vanishing_policy=policy1)
         dta2 = VanishingFactory().create(now, policy=policy1)
+        self.assertNotEqual(dta1, dta2)
         self.assertEqual(now, dta1.dt)
         self.assertEqual(dta1.dt, dta2.dt)
+        # policy instance should be reused
         self.assertEqual(dta1.vanishing_policy, dta2.vanishing_policy)
         self.assertEqual(dta1.events.count(), 1)
 
@@ -141,6 +148,49 @@ class VanishingDateTimeTestCase(TestCase):
             VanishingDateTime.objects.create(dt=now,
                                              vanishing_policy=
                                              make_policy(policy=[]))
+
+    def test_factory(self):
+        now = timezone.now()
+        empty_factory = VanishingFactory()
+        policy_steps = [
+            Precision(minutes=1),
+            Precision(hours=1).after(minutes=15),
+        ]
+        factory = VanishingFactory(policy_steps)
+        # assert lazy policy creation
+        self.assertEqual(VanishingPolicy.objects.count(), 0)
+        # no policy given
+        with self.assertRaises(ValueError):
+            empty_factory.create(now)
+        v1 = factory.create(now)
+        self.assertEqual(VanishingPolicy.objects.count(), 1)
+        # check reuses with steps and policy obj
+        v2 = empty_factory.create(now, policy=policy_steps)
+        self.assertEqual(VanishingPolicy.objects.count(), 1)  # reuse
+        policy_obj = v2.vanishing_policy
+        empty_factory.create(now, policy=policy_obj)
+        self.assertEqual(VanishingPolicy.objects.count(), 1)  # reuse again
+        # contexts
+        context = "foo"
+        # - no ordering contexts so far
+        self.assertEqual(VanishingOrderingContext.objects.count(), 0)
+        # - errors for context without policy
+        with self.assertRaises(ValueError):
+            VanishingFactory(context=context)
+        # - derive policy with context ordering
+        vc1 = empty_factory.create(now, policy=policy_steps, context=context)
+        self.assertEqual(VanishingOrderingContext.objects.count(), 1)
+        self.assertEqual(VanishingPolicy.objects.count(), 2)  # makes now policy
+        # - unhased context are plain in DB
+        self.assertEqual(VanishingPolicy.objects.filter(ordering_key__contains=context).count(), 1)
+        # - create date in new hashed context
+        context2 = "bar"
+        vc2 = factory.create(now, context=context2, hashed=True)
+        self.assertEqual(VanishingOrderingContext.objects.count(), 2)
+        self.assertEqual(VanishingPolicy.objects.count(), 3)  # makes now policy
+        self.assertEqual(VanishingPolicy.objects.filter(ordering_key__contains=context2).count(), 0)
+
+
 
 
 class VanishingOrderingContextTestCase(TestCase):

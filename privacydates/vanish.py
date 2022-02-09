@@ -6,6 +6,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from .models import VanishingEvent, VanishingDateTime, VanishingPolicy
+from .order import hash_context_key
 from .precision import Precision
 
 
@@ -80,22 +81,44 @@ class VanishingFactory:
         ...
     @overload
     def __init__(self, policy: Optional[PolicySteps] = None,
-                 context: Optional[str] = None):
+                 context: Optional[str] = None,
+                 hashed=False):
         ...
-    def __init__(self, policy=None, context=""):
+    def __init__(self, policy=None, context=None, hashed=False):
         """Setup factory for VanishingDateTime instances.
         A policy can be provided to use for all dates.
+
+        Parameters
+        ----------
+        date : datetime
+            The initial datetime
+
+        policy : VanishingPolicy or list of Precision (optional)
+            VanishingPolicy or list of policy steps to be used for this date
+
+        context : str (optional)
+            Context key used for deteriming this dates ordering context
+
+        hashed : bool (default: False)
+            Flag to indicate whether the context key should be hashed with
+            SHA256 before storing.
         """
+        self._policy_obj = None
+        self._policy_list = None
+        self._context = None
         if isinstance(policy, list):
             self._policy_list = policy
+            if context and hashed:
+                context = hash_context_key(context)
             self._context = context
-            self._policy_obj = None
         elif isinstance(policy, VanishingPolicy):
             self._policy_obj = policy
-            self._policy_list = None
-            self._context = None
+            if context:
+                raise ValueError("No context allowed for VanishingPolicy type")
         elif policy is None:
-            pass
+            # setup factory without default policy
+            if context:
+                raise ValueError("No context allowed without policy")
         else:
             raise TypeError("Unexpected policy type")
 
@@ -119,20 +142,30 @@ class VanishingFactory:
     @overload
     def create(self, date: datetime,
                policy: Optional[PolicySteps] = None,
-               context: Optional[str] = None) -> VanishingDateTime:
+               context: Optional[str] = None,
+               hashed=False) -> VanishingDateTime:
         ...
-    def create(self, date, policy=None, context=None):
+    def create(self, date, policy=None, context=None, hashed=False):
         """Creates and saves a VanishingDateTime object with the given
         datetime.
-        A policy can be provided to use instead of the factory's policy.
+        A policy and/or context can be provided to use instead of the factory's
+        policy. If a context but no policy is provided, a new policy object
+        will be created combining the factory's policy and the given context.
 
         Parameters
         ----------
         date : datetime
             The initial datetime
 
-        policy : VanishingPolicy
-            The VanishingPolicy to be used for this date
+        policy : VanishingPolicy or list of Precision (optional)
+            VanishingPolicy or list of policy steps to be used for this date
+
+        context : str (optional)
+            Context key used for deteriming this dates ordering context
+
+        hashed : bool (default: False)
+            Flag to indicate whether the context key should be hashed with
+            SHA256 before storing.
 
         Returns
         -------
@@ -140,6 +173,8 @@ class VanishingFactory:
         """
         if not policy and not self.policy:
             raise ValueError("No policy provided")
+        if hashed and context:
+            context = hash_context_key(context)
         if isinstance(policy, list):
             policy = make_policy(policy, context)
         if context and not policy:

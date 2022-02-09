@@ -7,7 +7,6 @@ from privacydates.vanish import (
     update_vanishing,
     VanishingFactory,
 )
-from privacydates.order import ordering_key_gen
 
 from .models import Event
 
@@ -41,10 +40,11 @@ def event_create_view(request):
         vanishing_date=van_factory.create(timezone.now()),
         vanishing_ordering_date=van_factory.create(
             timezone.now(),
-            context=ordering_key_gen(str(request.user) + "dtae"),
+            context=str(request.user) + "dtae",
+            hashed=True,
         ),
-        ordering_date=ordering_key_gen(str(request.user) + "en"),
-        ordering_similarity_date=ordering_key_gen(str(request.user) + "en2"),
+        ordering_date=str(request.user) + "en",
+        ordering_similarity_date=str(request.user) + "en2",
     )
     return redirect('/?order=base_date')
 

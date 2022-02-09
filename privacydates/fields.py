@@ -7,6 +7,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from .models import OrderingContext, VanishingDateTime
+from .order import hash_context_key
 from .precision import Precision
 
 
@@ -50,13 +51,15 @@ class OrderingDateField(models.IntegerField):
     """
     description = _("Ordering Date for sequence or revision counter")
 
-    def __init__(self, similarity_distance=0, *args, **kwargs):
+    def __init__(self, *args, similarity_distance=0, hashed=False, **kwargs):
         self.similarity_distance = similarity_distance
+        self.hashed = hashed
         super().__init__(*args, **kwargs)
 
     def deconstruct(self):
         name, path, args, kwargs = super().deconstruct()
         kwargs['similarity_distance'] = self.similarity_distance
+        kwargs['hashed'] = self.hashed
         return name, path, args, kwargs
 
 
@@ -73,8 +76,11 @@ class OrderingDateField(models.IntegerField):
         if not isinstance(field_input, str):
             raise TypeError('Ordering key must be a string, but is '
                             + str(type(field_input)))
+        key = field_input
+        if self.hashed:
+            key = hash_context_key(key)
         context, _ = OrderingContext.objects.get_or_create(
-            context_key=field_input,
+            context_key=key,
             similarity_distance=self.similarity_distance,
         )
         return context.next()
