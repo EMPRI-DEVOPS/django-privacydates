@@ -2,8 +2,8 @@ from django.shortcuts import redirect
 from django.views.generic import ListView
 from django.utils import timezone
 
-from privacydates.precision import Precision
-from privacydates.vanish import (
+from privacydates import (
+    Precision,
     update_vanishing,
     VanishingFactory,
 )

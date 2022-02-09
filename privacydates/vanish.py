@@ -10,6 +10,11 @@ from .order import hash_context_key
 from .precision import Precision
 
 
+__all__ = [
+    'VanishingFactory', 'update_vanishing',
+]
+
+
 PolicySteps = List[Precision]
 
 
