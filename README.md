@@ -97,7 +97,7 @@ In the following example, the created timestamp is reduced to a precision of 5 m
 from django.db import models
 from privacydates.fields import RoughDateField
 
-class MyModel(models.Model)
+class MyModel(models.Model):
     created = RoughDateField(minutes=5)
 ```
 
@@ -116,7 +116,7 @@ Note that this is not compatible with `DateTimeField` so you can not use any of 
 from django.db import models
 from privacydates.fields import VanishingDateField
 
-class MyModel(models.Model)
+class MyModel(models.Model):
     created = VanishingDateField()
 ```
 
@@ -171,7 +171,7 @@ should be hashed before storing in the database
 from django.db import models
 from privacydates.fields import OrderingDateField
 
-class MyModel(models.Model)
+class MyModel(models.Model):
     created = OrderingDateField(hashed=True)
 ```
 
