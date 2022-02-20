@@ -242,3 +242,20 @@ def some_function():
     update_vanishing()
     # ...
 ```
+
+
+## Citation information
+
+If you use `django-privacydates` in relation with academic projects and publications,
+we would be happy to receive citations of the following related paper:
+
+```
+@inproceedings{burkertPrivacyDatesFramework2022,
+  title = {{{PrivacyDates}}: {{A Framework}} for {{More Privacy-Preserving Timestamp Data Types}}},
+  author = {Burkert, Christian and Balack, Jonathan and Federrath, Hannes},
+  date = {2022},
+  series = {Lecture {{Notes}} in {{Informatics}} ({{LNI}})},
+  location = {{Karlsruhe}},
+  eventtitle = {{{GI Sicherheit}} 2022},
+}
+```
